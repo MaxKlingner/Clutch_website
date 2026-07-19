@@ -25,7 +25,7 @@ export default function Hero() {
         </div>
       </nav>
 
-      <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-6 pb-16 pt-8 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-8 lg:pb-20 lg:pt-10">
+      <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-6 pb-16 pt-8 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:pb-20 lg:pt-10">
         <div className="max-w-xl">
           <h1 className="animate-rise font-display text-[clamp(3.5rem,12vw,7.5rem)] font-bold leading-[0.9] tracking-tight text-ink">
             Clutch
@@ -52,11 +52,14 @@ export default function Hero() {
               Devenir Tuteur
             </a>
           </div>
+
+          <div className="animate-rise-delay-3 mt-8">
+            <TestFlightGuide />
+          </div>
         </div>
 
-        <div className="animate-rise-delay-2 relative mx-auto flex w-full max-w-[360px] flex-col gap-5">
-          <TestFlightGuide />
-          <div className="animate-float relative mx-auto w-full max-w-[300px]">
+        <div className="animate-rise-delay-2 relative mx-auto w-full max-w-[320px] lg:max-w-[360px]">
+          <div className="animate-float relative">
             <PhoneMockup />
           </div>
         </div>
