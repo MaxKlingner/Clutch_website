@@ -1,3 +1,4 @@
+import BetaBanner from "@/components/BetaBanner";
 import Hero from "@/components/Hero";
 import HowItWorks from "@/components/HowItWorks";
 import Tutors from "@/components/Tutors";
@@ -6,6 +7,7 @@ import Footer from "@/components/Footer";
 export default function Home() {
   return (
     <div id="top" className="flex min-h-full flex-col">
+      <BetaBanner />
       <Hero />
       <main>
         <HowItWorks />
@@ -33,11 +35,10 @@ function AudienceStrip() {
             enfant.
           </p>
           <a
-            id="telecharger"
-            href="#telecharger"
+            href="#beta"
             className="mt-8 inline-flex rounded-xl bg-white px-5 py-3 text-sm font-semibold text-ink transition hover:bg-white/90"
           >
-            Télécharger l&apos;application
+            Rejoindre la bêta
           </a>
         </div>
         <div id="devenir-tuteur">

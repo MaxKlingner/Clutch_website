@@ -26,8 +26,8 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="#telecharger" className="transition hover:text-white">
-                  Télécharger
+                <a href="#beta" className="transition hover:text-white">
+                  Rejoindre la bêta
                 </a>
               </li>
             </ul>

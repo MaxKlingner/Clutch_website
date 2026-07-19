@@ -1,3 +1,5 @@
+import TestFlightGuide from "@/components/TestFlight";
+
 export default function Hero() {
   return (
     <header className="relative min-h-[100svh] overflow-hidden hero-mesh">
@@ -29,18 +31,19 @@ export default function Hero() {
             Clutch
           </h1>
           <p className="animate-rise-delay-1 mt-6 max-w-md text-xl leading-snug font-medium text-ink-soft sm:text-2xl">
-            Le tutorat qui matche.
+            Par des étudiants, pour des étudiants
           </p>
           <p className="animate-rise-delay-2 mt-3 max-w-md text-base leading-relaxed text-muted sm:text-lg">
-            Parents et tuteurs étudiants se trouvent en un swipe — pour des cours qui collent vraiment.
+            Retrouvez des professeurs particuliers — des étudiants du supérieur — et matchez en un
+            swipe.
           </p>
 
           <div className="animate-rise-delay-3 mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
             <a
-              href="#telecharger"
+              href="#beta"
               className="inline-flex items-center justify-center rounded-xl bg-accent px-6 py-3.5 text-center text-base font-semibold text-white transition hover:bg-accent-deep"
             >
-              Télécharger l&apos;application
+              Rejoindre la bêta
             </a>
             <a
               href="#devenir-tuteur"
@@ -51,8 +54,9 @@ export default function Hero() {
           </div>
         </div>
 
-        <div className="animate-rise-delay-2 relative mx-auto w-full max-w-[320px] lg:max-w-[360px]">
-          <div className="animate-float relative">
+        <div className="animate-rise-delay-2 relative mx-auto flex w-full max-w-[360px] flex-col gap-5">
+          <TestFlightGuide />
+          <div className="animate-float relative mx-auto w-full max-w-[300px]">
             <PhoneMockup />
           </div>
         </div>
