@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #0f1c1a;
+  --ink-soft: #2a3d39;
+  --muted: #5e726c;
+  --surface: #f3f6f4;
+  --surface-elevated: #ffffff;
+  --accent: #0d9f7a;
+  --accent-deep: #087a5c;
+  --accent-warm: #ff5c3a;
+  --line: rgba(15, 28, 26, 0.08);
+  --glow-mint: rgba(13, 159, 122, 0.18);
+  --glow-coral: rgba(255, 92, 58, 0.12);
+  --background: var(--surface);
+  --foreground: var(--ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-accent: var(--accent);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-warm: var(--accent-warm);
+  --color-line: var(--line);
+  --font-sans: var(--font-outfit);
+  --font-display: var(--font-syne);
+  --font-family-display: var(--font-syne), ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-outfit), system-ui, sans-serif;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 28%, white);
+  color: var(--ink);
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-soft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes mesh-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(2%, -3%) scale(1.04);
+  }
+}
+
+.animate-rise {
+  animation: rise-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-rise-delay-1 {
+  animation: rise-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
+.animate-rise-delay-2 {
+  animation: rise-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.24s both;
+}
+
+.animate-rise-delay-3 {
+  animation: rise-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.36s both;
+}
+
+.animate-float {
+  animation: float-soft 5.5s ease-in-out infinite;
+}
+
+.hero-mesh {
+  background:
+    radial-gradient(ellipse 70% 55% at 18% 20%, var(--glow-mint), transparent 55%),
+    radial-gradient(ellipse 55% 50% at 88% 15%, var(--glow-coral), transparent 50%),
+    radial-gradient(ellipse 60% 45% at 70% 85%, rgba(13, 159, 122, 0.1), transparent 55%),
+    linear-gradient(160deg, #eaf3ef 0%, #f3f6f4 42%, #eef2f0 100%);
+}
+
+.hero-mesh::before {
+  content: "";
+  position: absolute;
+  inset: -10%;
+  background:
+    radial-gradient(circle at 30% 40%, rgba(13, 159, 122, 0.14), transparent 35%),
+    radial-gradient(circle at 75% 30%, rgba(255, 92, 58, 0.1), transparent 30%);
+  animation: mesh-drift 14s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.noise-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+}
