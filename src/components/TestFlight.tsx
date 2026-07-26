@@ -1,5 +1,4 @@
-/** Remplacez par votre lien d'invitation TestFlight réel. */
-export const TESTFLIGHT_INVITE_URL = "https://testflight.apple.com/join/XXXXX";
+export const TESTFLIGHT_INVITE_URL = "https://testflight.apple.com/join/V1b1xznk";
 
 export const TESTFLIGHT_APP_STORE_URL =
   "https://apps.apple.com/app/testflight/id899247664";
@@ -12,8 +11,8 @@ const steps = [
   },
   {
     number: "2",
-    title: "Demandez votre accès",
-    description: "Via notre lien d’invitation privé.",
+    title: "Ouvrez le lien d’invitation",
+    description: "Utilisez le bouton ci-dessous pour rejoindre le programme privé.",
   },
   {
     number: "3",
@@ -57,7 +56,7 @@ export default function TestFlightGuide() {
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-deep"
         >
-          Rejoindre le test TestFlight
+          Demander mon accès bêta
         </a>
         <a
           href={TESTFLIGHT_APP_STORE_URL}
@@ -66,6 +65,14 @@ export default function TestFlightGuide() {
           className="inline-flex items-center justify-center rounded-xl border border-ink/12 bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-accent/30"
         >
           Télécharger TestFlight
+        </a>
+        <a
+          href={TESTFLIGHT_INVITE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="break-all text-center text-xs text-accent underline-offset-2 hover:underline"
+        >
+          {TESTFLIGHT_INVITE_URL}
         </a>
       </div>
     </div>
