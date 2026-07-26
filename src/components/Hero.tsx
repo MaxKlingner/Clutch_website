@@ -1,4 +1,3 @@
-import Image from "next/image";
 import TestFlightGuide from "@/components/TestFlight";
 import BrandLogo from "@/components/BrandLogo";
 
@@ -29,19 +28,9 @@ export default function Hero() {
 
       <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-6 pb-16 pt-8 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:pb-20 lg:pt-10">
         <div className="max-w-xl">
-          <div className="animate-rise flex items-center gap-4 sm:gap-5">
-            <Image
-              src="/logo.png"
-              alt=""
-              width={88}
-              height={88}
-              priority
-              className="h-16 w-16 shrink-0 rounded-2xl sm:h-20 sm:w-20"
-            />
-            <h1 className="font-display text-[clamp(3.25rem,11vw,6.75rem)] font-bold leading-[0.9] tracking-tight text-ink">
-              Clutch
-            </h1>
-          </div>
+          <h1 className="animate-rise font-display text-[clamp(3.5rem,12vw,7.5rem)] font-bold leading-[0.9] tracking-tight text-ink">
+            Clutch
+          </h1>
           <p className="animate-rise-delay-1 mt-6 max-w-md text-xl leading-snug font-medium text-ink-soft sm:text-2xl">
             Par des étudiants, pour des étudiants
           </p>
