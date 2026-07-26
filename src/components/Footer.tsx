@@ -1,9 +1,14 @@
+import BrandLogo from "@/components/BrandLogo";
+
 export default function Footer() {
   return (
     <footer className="border-t border-line bg-ink text-white">
       <div className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-14 sm:px-8 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-sm">
-          <p className="font-display text-2xl font-bold tracking-tight">Clutch</p>
+          <BrandLogo
+            size={40}
+            wordmarkClassName="font-display text-2xl font-bold tracking-tight text-white"
+          />
           <p className="mt-3 text-sm leading-relaxed text-white/65">
             Le tutorat qui matche. Connectez parents et tuteurs étudiants en un swipe.
           </p>

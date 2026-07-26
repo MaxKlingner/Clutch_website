@@ -1,4 +1,6 @@
+import Image from "next/image";
 import TestFlightGuide from "@/components/TestFlight";
+import BrandLogo from "@/components/BrandLogo";
 
 export default function Hero() {
   return (
@@ -6,8 +8,8 @@ export default function Hero() {
       <div className="noise-overlay absolute inset-0 opacity-60 pointer-events-none" />
 
       <nav className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-6 py-5 sm:px-8">
-        <a href="#top" className="font-display text-xl font-bold tracking-tight text-ink">
-          Clutch
+        <a href="#top" className="transition opacity-100 hover:opacity-80">
+          <BrandLogo size={36} priority wordmarkClassName="font-display text-xl font-bold tracking-tight text-ink" />
         </a>
         <div className="hidden items-center gap-8 text-sm text-ink-soft sm:flex">
           <a href="#fonctionnement" className="transition hover:text-ink">
@@ -27,9 +29,19 @@ export default function Hero() {
 
       <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-6 pb-16 pt-8 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:pb-20 lg:pt-10">
         <div className="max-w-xl">
-          <h1 className="animate-rise font-display text-[clamp(3.5rem,12vw,7.5rem)] font-bold leading-[0.9] tracking-tight text-ink">
-            Clutch
-          </h1>
+          <div className="animate-rise flex items-center gap-4 sm:gap-5">
+            <Image
+              src="/logo.png"
+              alt=""
+              width={88}
+              height={88}
+              priority
+              className="h-16 w-16 shrink-0 rounded-2xl sm:h-20 sm:w-20"
+            />
+            <h1 className="font-display text-[clamp(3.25rem,11vw,6.75rem)] font-bold leading-[0.9] tracking-tight text-ink">
+              Clutch
+            </h1>
+          </div>
           <p className="animate-rise-delay-1 mt-6 max-w-md text-xl leading-snug font-medium text-ink-soft sm:text-2xl">
             Par des étudiants, pour des étudiants
           </p>
