@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit, Syne } from "next/font/google";
-import { getSiteUrl } from "@/lib/site";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -15,15 +15,13 @@ const syne = Syne({
   display: "swap",
 });
 
-const siteUrl = getSiteUrl();
-
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(SITE_URL),
   title: "Clutch — Le tutorat qui matche",
   description:
     "Clutch connecte parents et tuteurs étudiants. Swipez, matchez, apprenez. Rejoignez la bêta sur TestFlight.",
   alternates: {
-    canonical: "/",
+    canonical: SITE_URL,
   },
   robots: {
     index: true,
@@ -33,7 +31,7 @@ export const metadata: Metadata = {
     title: "Clutch — Le tutorat qui matche",
     description:
       "Par des étudiants, pour des étudiants. Trouvez un professeur particulier du supérieur en un swipe.",
-    url: "/",
+    url: SITE_URL,
     siteName: "Clutch",
     locale: "fr_FR",
     type: "website",
