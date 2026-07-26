@@ -27,6 +27,9 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  verification: {
+    google: "WmqsKchLPlAtA_WGSmQuUzE_6IcIkR3OOMZoZWbXzNU",
+  },
   openGraph: {
     title: "Clutch — Le tutorat qui matche",
     description:
