@@ -1,0 +1,145 @@
+﻿"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth, useUser } from "@clerk/clerk-react";
+import AccountSettings from "@/components/site/AccountSettings";
+import { useEffect, useState } from "react";
+import TutorCard from "@/components/site/TutorCard";
+import { useRequireUser } from "@/components/site/useRequireUser";
+import { fetchFavorites, toggleFavorite, type Tutor } from "@/lib/db";
+
+const field =
+  "w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none focus:border-[#0d9f7a]";
+
+export function Favorites() {
+  const ready = useRequireUser();
+  const { userId } = useAuth();
+  const [tutors, setTutors] = useState<Tutor[]>([]);
+
+  useEffect(() => {
+    if (!userId) return;
+    fetchFavorites(userId).then(setTutors).catch(() => setTutors([]));
+  }, [userId]);
+
+  if (!ready) {
+    return (
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        <BackToTutors />
+        <p className="grid min-h-[40vh] place-items-center text-black/50">Chargement…</p>
+      </main>
+    );
+  }
+  return (
+    <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+      <BackToTutors />
+      <h1 className="mt-4 font-display text-3xl font-bold">Favoris</h1>
+      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {tutors.map((tutor) => (
+          <TutorCard
+            key={tutor.id}
+            tutor={tutor}
+            saved
+            onToggleSave={
+              userId
+                ? () => {
+                    setTutors((current) => current.filter((item) => item.id !== tutor.id));
+                    toggleFavorite(userId, tutor.id, false).catch(() =>
+                      setTutors((current) =>
+                        current.some((item) => item.id === tutor.id) ? current : [tutor, ...current]
+                      )
+                    );
+                  }
+                : undefined
+            }
+          />
+        ))}
+      </div>
+      {!tutors.length ? (
+        <p className="mt-6 text-black/55">
+          Aucun favori. Le cœur sur un profil l’ajoute ici.
+        </p>
+      ) : null}
+    </main>
+  );
+}
+
+export function Account() {
+  return <AccountSettings />;
+}
+
+export function Welcome() {
+  const ready = useRequireUser();
+  const { userId } = useAuth();
+  const { user } = useUser();
+  const router = useRouter();
+  const [role, setRole] = useState<"parent" | "tutor">("parent");
+  const [city, setCity] = useState("");
+  const [error, setError] = useState("");
+
+  if (!ready) return <Loading />;
+  return (
+    <main className="mx-auto flex max-w-md flex-col px-6 py-16">
+      <form
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (!userId) return;
+          try {
+            const { saveSignupProfile } = await import("@/lib/db");
+            await saveSignupProfile({
+              clerkId: userId,
+              role,
+              firstName: user?.firstName || "",
+              lastName: user?.lastName || "",
+              city,
+            });
+            router.replace(role === "tutor" ? "/annonce" : "/");
+          } catch (err) {
+            setError(err instanceof Error ? err.message : "Enregistrement impossible.");
+          }
+        }}
+      >
+        <h1 className="font-display text-4xl font-bold">Tu es…</h1>
+        <p className="mt-2 text-sm text-black/55">
+          Tu pourras changer ensuite. Les professeurs restent visibles dans les deux cas.
+        </p>
+        <div className="mt-6 grid grid-cols-2 gap-2">
+          {(["parent", "tutor"] as const).map((item) => (
+            <button
+              type="button"
+              key={item}
+              onClick={() => setRole(item)}
+              className={`rounded-2xl px-4 py-4 font-extrabold ${
+                role === item ? "bg-[#1c1c1c] text-white" : "bg-white"
+              }`}
+            >
+              {item === "parent" ? "Parent" : "Tuteur"}
+            </button>
+          ))}
+        </div>
+        <input
+          value={city}
+          onChange={(event) => setCity(event.target.value)}
+          placeholder="Ville"
+          className={`${field} mt-4`}
+        />
+        {error ? <p className="mt-3 text-sm text-[#c23b3b]">{error}</p> : null}
+        <button className="mt-6 w-full rounded-full bg-[#0d9f7a] py-3 font-extrabold text-white">
+          Continuer
+        </button>
+      </form>
+    </main>
+  );
+}
+
+function BackToTutors() {
+  return (
+    <Link href="/" className="text-sm font-semibold text-black/55">
+      ← Tous les professeurs
+    </Link>
+  );
+}
+
+function Loading() {
+  return <p className="grid min-h-[40vh] place-items-center text-black/50">Chargement…</p>;
+}

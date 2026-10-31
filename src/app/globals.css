@@ -43,6 +43,88 @@ body {
   font-family: var(--font-outfit), system-ui, sans-serif;
 }
 
+a[href],
+button:not(:disabled),
+summary,
+label:has(input, select, button),
+select:not(:disabled),
+input:is(
+    [type="checkbox"],
+    [type="radio"],
+    [type="file"],
+    [type="range"],
+    [type="submit"],
+    [type="button"],
+    [type="reset"]
+  ):not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+[role="link"],
+[role="tab"],
+[role="option"],
+[role="menuitem"] {
+  cursor: pointer;
+}
+
+.tutor-pin {
+  background: transparent;
+  border: none;
+}
+
+.tutor-pin-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  border-radius: 16px;
+  background: #fff;
+  padding: 5px 10px 5px 5px;
+  color: #1c1c1c;
+  box-shadow: 0 8px 20px rgba(15, 28, 26, 0.16);
+  cursor: pointer;
+}
+
+.tutor-pin-label img,
+.tutor-pin-fallback {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.tutor-pin-fallback {
+  display: grid;
+  place-items: center;
+  background: #e7f6f1;
+  color: #087a5c;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.tutor-pin-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.tutor-pin-text strong {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.tutor-pin-text b {
+  color: #0d9f7a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.leaflet-marker-icon.tutor-pin:hover {
+  z-index: 1000 !important;
+}
+
 ::selection {
   background: color-mix(in srgb, var(--accent) 28%, white);
   color: var(--ink);

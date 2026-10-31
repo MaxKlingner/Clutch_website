@@ -1,0 +1,580 @@
+"use client";
+
+import { useAuth, useUser } from "@clerk/clerk-react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import PhotoCropper, { photoFileError } from "@/components/site/PhotoCropper";
+import { firstName, formatRate, Portrait } from "@/components/site/TutorCard";
+import { useRequireUser } from "@/components/site/useRequireUser";
+import { LEVEL_GROUPS, fold } from "@/components/site/filters";
+import {
+  announcementPublished,
+  fetchMyTutorProfile,
+  FORMATS,
+  resetAnnouncement,
+  ROLES,
+  saveAnnouncement,
+  setActiveRole,
+  SPECIALTIES,
+  uploadAnnouncementPhoto,
+} from "@/lib/db";
+import { resolveLocationQuery, suggestLocations, type ResolvedPlace } from "@/lib/locations";
+
+const LEVEL_OPTIONS = ["Primaire", "Secondaire", "Supérieur", "Formation pour adultes"] as const;
+
+const field =
+  "w-full rounded-2xl border border-black/10 bg-[#f6f7f8] px-4 py-3 outline-none focus:border-[#12382c] focus:bg-white";
+
+export default function AnnouncementForm() {
+  const ready = useRequireUser();
+  const { userId } = useAuth();
+  const { user } = useUser();
+  const [bio, setBio] = useState("");
+  const [aboutTutor, setAboutTutor] = useState("");
+  const [aboutCourse, setAboutCourse] = useState("");
+  const [rate, setRate] = useState(25);
+  const [city, setCity] = useState("");
+  const [place, setPlace] = useState<ResolvedPlace | null>(null);
+  const [placeOpen, setPlaceOpen] = useState(false);
+  const placeRoot = useRef<HTMLDivElement>(null);
+  const [specialties, setSpecialties] = useState<string[]>([]);
+  const [formats, setFormats] = useState<string[]>([]);
+  const [levels, setLevels] = useState<string[]>([]);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [published, setPublished] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!userId) return;
+    fetchMyTutorProfile(userId).then((profile) => {
+      if (!profile) return;
+      setBio(profile.bio);
+      setAboutTutor(profile.aboutTutor);
+      setAboutCourse(profile.aboutCourse);
+      setRate(profile.hourlyRate || 25);
+      setCity(profile.city || "");
+      if (profile.city && profile.latitude != null && profile.longitude != null) {
+        setPlace({
+          name: profile.city,
+          postalCode: profile.postalCode || "",
+          latitude: profile.latitude,
+          longitude: profile.longitude,
+        });
+      } else {
+        setPlace(resolveLocationQuery(profile.city || ""));
+      }
+      setSpecialties(profile.specialties.filter((item) => item.trim().toLowerCase() !== "matière"));
+      setFormats(normalizeFormats(profile.teachingFormats));
+      setLevels(coarseLevels(profile.taughtLevels));
+      setPhotoUrl(profile.avatarUrl);
+      setPublished(announcementPublished(profile));
+    });
+  }, [userId]);
+
+  useEffect(() => {
+    if (!placeOpen) return;
+    function onPointerDown(event: PointerEvent) {
+      if (!placeRoot.current?.contains(event.target as Node)) setPlaceOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [placeOpen]);
+
+  const places = placeOpen ? suggestLocations(city) : [];
+
+  function toggle(list: string[], value: string, set: (next: string[]) => void) {
+    set(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
+  }
+
+  function pickPhoto(file: File | undefined) {
+    if (!file) return;
+    const message = photoFileError(file);
+    if (message) {
+      setError(message);
+      return;
+    }
+    setError("");
+    setCropFile(file);
+  }
+
+  function applyCropped(file: File) {
+    setCropFile(null);
+    setPhotoFile(file);
+    setPhotoUrl((current) => {
+      if (current?.startsWith("blob:")) URL.revokeObjectURL(current);
+      return URL.createObjectURL(file);
+    });
+  }
+
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!userId) return;
+    if (!specialties.length) {
+      setError("Choisis au moins une matière. C’est ce qui publie l’annonce.");
+      return;
+    }
+    const resolved = place ?? resolveLocationQuery(city);
+    if (city.trim() && !resolved) {
+      setError("Choisis une commune dans la liste.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    setMessage("");
+    try {
+      const avatarUrl = photoFile
+        ? await uploadAnnouncementPhoto(userId, photoFile)
+        : photoUrl || user?.imageUrl || null;
+      await saveAnnouncement(userId, {
+        fullName: user?.fullName || "Tuteur",
+        bio: clipWords(bio, 24),
+        aboutTutor: clipWords(aboutTutor, 80),
+        aboutCourse: clipWords(aboutCourse, 80),
+        specialties,
+        hourlyRate: rate,
+        city: resolved?.name || city,
+        postalCode: resolved?.postalCode || null,
+        latitude: resolved?.latitude ?? null,
+        longitude: resolved?.longitude ?? null,
+        teachingFormats: formats,
+        taughtLevels: levels,
+        avatarUrl,
+      });
+      await setActiveRole(userId, ROLES.TUTOR, user?.fullName);
+      setPhotoFile(null);
+      if (avatarUrl) setPhotoUrl(avatarUrl);
+      setBio(clipWords(bio, 24));
+      setAboutTutor(clipWords(aboutTutor, 80));
+      setAboutCourse(clipWords(aboutCourse, 80));
+      setPublished(true);
+      setMessage("Annonce en ligne. Elle apparaît chez les professeurs disponibles.");
+      window.dispatchEvent(new Event("clutch-announcement"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Enregistrement impossible.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function onRemove() {
+    if (!userId || saving) return;
+    setSaving(true);
+    setError("");
+    setMessage("");
+    try {
+      await resetAnnouncement(userId);
+      setSpecialties([]);
+      setFormats([]);
+      setLevels([]);
+      setBio("");
+      setAboutTutor("");
+      setAboutCourse("");
+      setPublished(false);
+      setMessage("Annonce retirée. Elle n’apparaît plus dans la liste.");
+      window.dispatchEvent(new Event("clutch-announcement"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Suppression impossible.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!ready) {
+    return (
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        <Link href="/" className="text-sm font-semibold text-black/55">
+          ← Tous les professeurs
+        </Link>
+        <p className="grid min-h-[40vh] place-items-center text-black/50">Chargement…</p>
+      </main>
+    );
+  }
+
+  const name = user?.fullName || "Toi";
+  const shownPhoto = photoUrl || user?.imageUrl || null;
+
+  return (
+    <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+      <Link href="/" className="text-sm font-semibold text-black/55">
+        ← Tous les professeurs
+      </Link>
+      <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-extrabold tracking-[0.16em] text-[#087a5c] uppercase">Annonce</p>
+          <h1 className="mt-1 font-display text-3xl font-bold">
+            {published ? "Mon annonce" : "Publie ton annonce"}
+          </h1>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-black/55">
+            Photo, accroche, méthode. C’est la fiche que les élèves lisent avant de t’écrire.
+          </p>
+        </div>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-extrabold ${
+            published ? "bg-[#e7f6f1] text-[#087a5c]" : "bg-white text-black/45"
+          }`}
+        >
+          {published ? "En ligne" : "Pas encore publiée"}
+        </span>
+      </div>
+
+      <form onSubmit={onSubmit} className="mt-6 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="space-y-4">
+          <Section
+            step="1"
+            title="Photo et ville"
+            hint="Un portrait lumineux, toi seul, le visage dégagé. La ville sert aux élèves près de chez toi."
+          >
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+              <label className="relative h-36 w-36 shrink-0 cursor-pointer">
+                <Portrait
+                  name={name}
+                  url={shownPhoto}
+                  className="h-36 w-36 rounded-3xl object-cover"
+                />
+                <span className="absolute inset-x-2 bottom-2 rounded-full bg-white/95 py-1 text-center text-xs font-extrabold shadow-sm">
+                  Changer
+                </span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    pickPhoto(file);
+                  }}
+                />
+              </label>
+              <div ref={placeRoot} className="relative min-w-0 flex-1 text-sm">
+                <span className="font-semibold text-black/70">Commune</span>
+                <input
+                  value={city}
+                  onChange={(event) => {
+                    setCity(event.target.value);
+                    setPlace(null);
+                    setPlaceOpen(true);
+                  }}
+                  onFocus={() => setPlaceOpen(true)}
+                  placeholder="Commune ou code postal"
+                  className={`${field} mt-2`}
+                  autoComplete="off"
+                />
+                {place?.postalCode ? (
+                  <p className="mt-2 text-xs font-semibold text-[#087a5c]">{place.postalCode}</p>
+                ) : null}
+                {places.length ? (
+                  <div className="absolute top-[calc(100%+8px)] right-0 left-0 z-30 overflow-hidden rounded-2xl bg-white py-1 shadow-[0_18px_50px_rgba(15,28,26,0.14)] ring-1 ring-black/5">
+                    {places.map((item) => (
+                      <button
+                        key={`${item.postalCode}-${item.name}`}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          setCity(item.name);
+                          setPlace(item);
+                          setPlaceOpen(false);
+                        }}
+                        className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm hover:bg-[#f3f7f5]"
+                      >
+                        <span className="font-semibold">{item.name}</span>
+                        <span className="text-black/45">{item.postalCode}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : placeOpen && city.trim().length >= 2 ? (
+                  <p className="absolute top-[calc(100%+8px)] right-0 left-0 z-30 rounded-2xl bg-white px-4 py-3 text-sm text-black/50 shadow-[0_18px_50px_rgba(15,28,26,0.14)] ring-1 ring-black/5">
+                    Aucune commune ne correspond.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </Section>
+
+          <Section
+            step="2"
+            title="Accroche"
+            hint="La phrase sous ta photo. Dis ce que tu enseignes, pour qui, et ce qui te distingue."
+          >
+            <CountedText
+              value={bio}
+              max={24}
+              rows={3}
+              onChange={setBio}
+              placeholder="Étudiant en maths, je prépare le secondaire aux contrôles, à Wavre ou en visio."
+            />
+          </Section>
+
+          <Section
+            step="3"
+            title="À propos de toi"
+            hint="Diplômes, années de pratique, élèves déjà suivis. Écris à la première personne."
+          >
+            <CountedText value={aboutTutor} max={80} rows={5} onChange={setAboutTutor} />
+          </Section>
+
+          <Section
+            step="4"
+            title="À propos du cours"
+            hint="Le déroulement d’une séance : par où tu commences, comment tu fais travailler, ce que l’élève repart avec."
+          >
+            <CountedText value={aboutCourse} max={80} rows={5} onChange={setAboutCourse} />
+          </Section>
+
+          <Section
+            step="5"
+            title="Matières, niveaux, format"
+            hint="Une matière suffit pour publier. Les niveaux et le format sont ceux des filtres."
+          >
+            <Picker
+              title="Matières"
+              options={[...SPECIALTIES]}
+              selected={specialties}
+              onToggle={(value) => toggle(specialties, value, setSpecialties)}
+            />
+            <Picker
+              title="Niveaux"
+              options={[...LEVEL_OPTIONS]}
+              selected={levels}
+              onToggle={(value) => toggle(levels, value, setLevels)}
+            />
+            <div className="mt-4">
+              <p className="text-sm font-semibold text-black/70">Format</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {FORMATS.map((format) => {
+                  const on = formats.includes(format);
+                  return (
+                    <button
+                      key={format}
+                      type="button"
+                      onClick={() => toggle(formats, format, setFormats)}
+                      className={`rounded-2xl border px-4 py-3 text-sm font-extrabold ${
+                        on
+                          ? "border-[#12382c] bg-[#12382c] text-white"
+                          : "border-black/10 bg-[#f6f7f8] text-black/70"
+                      }`}
+                    >
+                      {format}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </Section>
+
+          <Section step="6" title="Tarif" hint="Un tarif horaire, affiché tel quel sur ta fiche.">
+            <div className="flex items-end justify-between gap-4">
+              <p className="font-display text-4xl font-bold text-[#0d9f7a]">
+                {rate}
+                <span className="ml-1 text-base font-semibold text-black/45">€/h</span>
+              </p>
+              <label className="text-sm font-semibold text-black/55">
+                <span className="sr-only">Tarif horaire</span>
+                <input
+                  type="number"
+                  min={5}
+                  max={150}
+                  value={rate}
+                  onChange={(event) => setRate(Math.max(0, Number(event.target.value) || 0))}
+                  className="w-24 rounded-xl border border-black/10 bg-[#f6f7f8] px-3 py-2 text-right outline-none focus:border-[#12382c]"
+                />
+              </label>
+            </div>
+            <input
+              type="range"
+              min={10}
+              max={80}
+              value={Math.min(80, Math.max(10, rate))}
+              onChange={(event) => setRate(Number(event.target.value))}
+              className="mt-4 w-full accent-[#0d9f7a]"
+            />
+            <div className="mt-1 flex justify-between text-xs font-semibold text-black/40">
+              <span>10 €</span>
+              <span>80 €</span>
+            </div>
+          </Section>
+        </div>
+
+        <aside className="space-y-4 lg:sticky lg:top-[calc(var(--site-header,3.5rem)+1rem)]">
+          <div className="rounded-3xl bg-white p-4 shadow-[0_8px_30px_rgba(15,28,26,0.06)]">
+            <p className="text-xs font-extrabold tracking-wide text-black/40 uppercase">Aperçu</p>
+            <div className="mt-3">
+              <Portrait name={name} url={shownPhoto} className="aspect-square h-auto w-full rounded-2xl object-cover" />
+              <div className="mt-3 flex items-start justify-between gap-2">
+                <p className="truncate text-lg font-extrabold">{firstName(name)}</p>
+                <p className="shrink-0 font-extrabold text-[#0d9f7a]">{formatRate(rate)} €/h</p>
+              </div>
+              <p className="mt-1 text-sm text-black/50">{city.trim() || "Ville à préciser"}</p>
+              <p className="mt-2 line-clamp-3 text-sm leading-6 text-black/70">
+                {bio.trim() || "Ton accroche apparaîtra ici."}
+              </p>
+              <p className="mt-3 text-xs font-semibold text-black/55">
+                {specialties.length ? specialties.join(" · ") : "Matière à choisir"}
+              </p>
+            </div>
+          </div>
+
+          {error ? <p className="text-sm text-[#c23b3b]">{error}</p> : null}
+          {message ? <p className="text-sm font-semibold text-[#087a5c]">{message}</p> : null}
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="h-12 w-full rounded-full bg-[#12382c] text-sm font-extrabold text-white disabled:opacity-60"
+          >
+            {saving ? "Enregistrement…" : published ? "Enregistrer" : "Publier l’annonce"}
+          </button>
+          {published ? (
+            <button
+              type="button"
+              disabled={saving}
+              onClick={onRemove}
+              className="h-11 w-full rounded-full text-sm font-semibold text-black/50 hover:text-[#c23b3b]"
+            >
+              Retirer l’annonce
+            </button>
+          ) : null}
+        </aside>
+      </form>
+      {cropFile ? (
+        <PhotoCropper
+          file={cropFile}
+          shape="square"
+          onCancel={() => setCropFile(null)}
+          onConfirm={applyCropped}
+        />
+      ) : null}
+    </main>
+  );
+}
+
+function Section({
+  step,
+  title,
+  hint,
+  children,
+}: {
+  step: string;
+  title: string;
+  hint: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-3xl bg-white p-5 shadow-[0_8px_30px_rgba(15,28,26,0.06)] sm:p-6">
+      <div className="flex items-start gap-3">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#12382c] text-xs font-extrabold text-white">
+          {step}
+        </span>
+        <div>
+          <h2 className="font-extrabold">{title}</h2>
+          <p className="mt-1 text-sm leading-6 text-black/50">{hint}</p>
+        </div>
+      </div>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+function CountedText({
+  value,
+  max,
+  rows,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  max: number;
+  rows: number;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  const count = countWords(value);
+  return (
+    <div>
+      <textarea
+        value={value}
+        rows={rows}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value)}
+        className={field}
+      />
+      <p className={`mt-2 text-right text-xs font-semibold ${count > max ? "text-[#c23b3b]" : "text-black/40"}`}>
+        {count} / {max} mots
+      </p>
+    </div>
+  );
+}
+
+function Picker({
+  title,
+  options,
+  selected,
+  onToggle,
+}: {
+  title: string;
+  options: string[];
+  selected: string[];
+  onToggle: (value: string) => void;
+}) {
+  return (
+    <div className="mt-4 first:mt-0">
+      <p className="text-sm font-semibold text-black/70">{title}</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {options.map((option) => {
+          const on = selected.includes(option);
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => onToggle(option)}
+              className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
+                on ? "bg-[#12382c] text-white" : "bg-[#f6f7f8] text-black/70"
+              }`}
+            >
+              {option}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function countWords(value: string) {
+  const trimmed = value.trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+}
+
+function clipWords(value: string, max: number) {
+  return value.trim().split(/\s+/).filter(Boolean).slice(0, max).join(" ");
+}
+
+function normalizeFormats(formats: string[]) {
+  const next: string[] = [];
+  for (const raw of formats) {
+    const name = fold(raw);
+    if (
+      ["face a face", "chez l'eleve", "chez l’eleve", "chez le professeur", "presentiel", "a domicile", "en presentiel"].includes(
+        name
+      ) &&
+      !next.includes("Face à face")
+    ) {
+      next.push("Face à face");
+    }
+    if (["a distance", "en ligne"].includes(name) && !next.includes("À distance")) next.push("À distance");
+  }
+  return next;
+}
+
+function coarseLevels(levels: string[]) {
+  const known = new Set(levels.map(fold));
+  return LEVEL_GROUPS.flatMap((group) => {
+    if (!group.levels.some((level) => known.has(fold(level)))) return [];
+    if (group.id === "superieur") return ["Supérieur"];
+    if (group.id === "adultes") return ["Formation pour adultes"];
+    return [group.label];
+  });
+}

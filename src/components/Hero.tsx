@@ -17,11 +17,14 @@ export default function Hero() {
           <a href="#tuteurs" className="transition hover:text-ink">
             Tuteurs
           </a>
+          <a href="/connexion" className="transition hover:text-ink">
+            Connexion
+          </a>
           <a
-            href="#devenir-tuteur"
+            href="/espace"
             className="rounded-lg bg-ink px-4 py-2 font-medium text-white transition hover:bg-ink-soft"
           >
-            Devenir Tuteur
+            Ouvrir Clutch
           </a>
         </div>
       </nav>

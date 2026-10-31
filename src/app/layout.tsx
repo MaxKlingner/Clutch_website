@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit, Syne } from "next/font/google";
+import Providers from "@/components/Providers";
+import SiteFrame from "@/components/site/SiteFrame";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
@@ -17,9 +19,9 @@ const syne = Syne({
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "Clutch — Le tutorat qui matche",
+  title: "Clutch — Professeurs disponibles",
   description:
-    "Clutch connecte parents et tuteurs étudiants. Swipez, matchez, apprenez. Rejoignez la bêta sur TestFlight.",
+    "Trouvez un professeur particulier. Parcourez les profils sans compte, connectez-vous seulement pour envoyer un message.",
   alternates: {
     canonical: SITE_URL,
   },
@@ -31,9 +33,9 @@ export const metadata: Metadata = {
     google: "WmqsKchLPlAtA_WGSmQuUzE_6IcIkR3OOMZoZWbXzNU",
   },
   openGraph: {
-    title: "Clutch — Le tutorat qui matche",
+    title: "Clutch — Professeurs disponibles",
     description:
-      "Par des étudiants, pour des étudiants. Trouvez un professeur particulier du supérieur en un swipe.",
+      "Parcourez les professeurs disponibles. Un compte n’est demandé que pour envoyer un message.",
     url: SITE_URL,
     siteName: "Clutch",
     locale: "fr_FR",
@@ -64,7 +66,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${outfit.variable} ${syne.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans text-ink">{children}</body>
+      <body className="min-h-full flex flex-col font-sans text-ink">
+        <Providers>
+          <SiteFrame>{children}</SiteFrame>
+        </Providers>
+      </body>
     </html>
   );
 }
