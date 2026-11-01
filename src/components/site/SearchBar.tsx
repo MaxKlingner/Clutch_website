@@ -91,7 +91,7 @@ export default function SearchBar({ prominent = false }: { prominent?: boolean }
       <div
         className={
           prominent
-            ? "flex flex-col gap-2 rounded-2xl bg-white p-2 shadow-[0_16px_40px_rgba(15,28,26,0.08)] ring-1 ring-black/5 sm:flex-row sm:items-center"
+            ? "flex items-center rounded-2xl bg-white p-1.5 shadow-[0_16px_40px_rgba(15,28,26,0.08)] ring-1 ring-black/5"
             : "flex h-11 min-w-0 items-center rounded-2xl bg-[#f6f7f8] ring-1 ring-black/10"
         }
       >
@@ -154,8 +154,8 @@ export default function SearchBar({ prominent = false }: { prominent?: boolean }
             </div>
           ) : null}
         </div>
-        <span className={prominent ? "hidden h-8 w-px bg-black/10 sm:block" : "h-5 w-px bg-black/10"} />
-        <div className={prominent ? "relative min-w-0 flex-1" : "relative w-44 shrink-0"}>
+        <span className={prominent ? "h-8 w-px shrink-0 bg-black/10" : "h-5 w-px shrink-0 bg-black/10"} />
+        <div className={prominent ? "relative min-w-0 flex-1" : "relative max-w-[9.5rem] shrink-0 sm:max-w-none sm:w-44"}>
           <button
             type="button"
             onClick={() => setPanel((current) => (current === "place" ? null : "place"))}

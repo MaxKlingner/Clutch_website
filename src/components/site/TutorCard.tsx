@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Tutor } from "@/lib/db";
+import { responseLabel } from "@/lib/trust";
 
 export function firstName(name: string) {
   return name.trim().split(/\s+/)[0] || name;
@@ -90,12 +91,21 @@ export default function TutorCard({
           )}
           {tutor.city ? ` · ${tutor.city}` : ""}
         </p>
+        {responseLabel(tutor.responseMinutes) ? (
+          <p className="mt-1 truncate text-xs font-semibold text-black/50">
+            {responseLabel(tutor.responseMinutes)}
+          </p>
+        ) : null}
         {contacted ? (
           <p className="mt-2 inline-flex rounded-full bg-[#e7f6f1] px-2.5 py-1 text-xs font-bold text-[#087a5c]">
             Déjà contacté
           </p>
         ) : null}
-        <p className="mt-2 line-clamp-2 text-sm leading-6 text-black/70">
+        <p
+          className={`mt-2 text-sm leading-6 text-black/70 ${
+            contacted ? "line-clamp-2" : "line-clamp-3"
+          }`}
+        >
           {tutor.bio || "Présentation à venir."}
         </p>
         <p className="mt-2 truncate text-sm font-semibold text-black/80">

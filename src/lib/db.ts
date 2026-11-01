@@ -21,7 +21,7 @@ export const LEVELS = [
 export const FORMATS = ["Face à face", "À distance"] as const;
 
 const PROFILE_COLUMNS =
-  "id, clerk_id, full_name, subject, hourly_rate, rating, review_count, lessons_given, role, bio, about_tutor, about_course, specialties, study_year, avatar_url, city, postal_code, latitude, longitude, teaching_formats, taught_levels, created_at";
+  "id, clerk_id, full_name, subject, hourly_rate, rating, review_count, lessons_given, role, bio, about_tutor, about_course, specialties, study_year, avatar_url, city, postal_code, latitude, longitude, teaching_formats, taught_levels, diploma_title, diploma_school, diploma_year, response_minutes, created_at";
 
 export type Tutor = {
   id: string;
@@ -43,6 +43,20 @@ export type Tutor = {
   longitude: number | null;
   teachingFormats: string[];
   taughtLevels: string[];
+  diplomaTitle: string;
+  diplomaSchool: string;
+  diplomaYear: number | null;
+  responseMinutes: number | null;
+};
+
+export type Review = {
+  id: string;
+  matchId: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  reply: string;
+  repliedAt: string | null;
 };
 
 export type Match = {
@@ -130,6 +144,16 @@ function mapTutor(row: Record<string, unknown> | null): Tutor | null {
       ? row.teaching_formats.map(String)
       : [],
     taughtLevels: Array.isArray(row.taught_levels) ? row.taught_levels.map(String) : [],
+    diplomaTitle: row.diploma_title ? String(row.diploma_title) : "",
+    diplomaSchool: row.diploma_school ? String(row.diploma_school) : "",
+    diplomaYear:
+      row.diploma_year == null || !Number.isInteger(Number(row.diploma_year)) || Number(row.diploma_year) <= 0
+        ? null
+        : Number(row.diploma_year),
+    responseMinutes:
+      row.response_minutes == null || !Number.isFinite(Number(row.response_minutes))
+        ? null
+        : Number(row.response_minutes),
   };
 }
 
@@ -196,21 +220,131 @@ export async function fetchMyTutorProfile(clerkId: string) {
   return mapTutor(data);
 }
 
+function mapReview(row: Record<string, unknown>): Review {
+  return {
+    id: String(row.id),
+    matchId: row.match_id ? String(row.match_id) : "",
+    rating: Number(row.rating) || 0,
+    comment: row.comment ? String(row.comment) : "",
+    createdAt: String(row.created_at ?? ""),
+    reply: row.reply ? String(row.reply) : "",
+    repliedAt: row.replied_at ? String(row.replied_at) : null,
+  };
+}
+
 export async function fetchReviews(tutorId: string) {
   const db = getSupabase();
   const { data, error } = await db
     .from("reviews")
-    .select("id, rating, comment, created_at")
+    .select("id, match_id, rating, comment, created_at, reply, replied_at")
     .eq("tutor_id", tutorId)
     .order("created_at", { ascending: false })
-    .limit(8);
+    .limit(12);
   if (error) throw new Error(error.message);
-  return (data ?? []).map((row) => ({
-    id: String(row.id),
-    rating: Number(row.rating) || 0,
-    comment: row.comment ? String(row.comment) : "",
-    createdAt: String(row.created_at),
-  }));
+  return (data ?? []).map((row) => mapReview(row));
+}
+
+export async function fetchReviewForMatch(matchId: string) {
+  const db = getSupabase();
+  const { data, error } = await db
+    .from("reviews")
+    .select("id, match_id, rating, comment, created_at, reply, replied_at")
+    .eq("match_id", matchId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? mapReview(data) : null;
+}
+
+export function exchangeReady(messages: { senderRole: string }[]) {
+  const roles = new Set(messages.map((message) => message.senderRole));
+  return roles.has("parent") && roles.has("tutor");
+}
+
+export async function submitReview(input: {
+  matchId: string;
+  reviewerId: string;
+  tutorId: string;
+  rating: number;
+  comment?: string;
+}) {
+  const stars = Number(input.rating);
+  if (!Number.isInteger(stars) || stars < 1 || stars > 5) {
+    throw new Error("La note doit être un entier entre 1 et 5.");
+  }
+  const messages = await fetchMessages(input.matchId);
+  if (!exchangeReady(messages)) {
+    throw new Error("Un avis n’est possible qu’après un échange.");
+  }
+  const db = getSupabase();
+  const { error } = await db.from("reviews").insert({
+    match_id: input.matchId,
+    reviewer_id: input.reviewerId,
+    tutor_id: input.tutorId,
+    rating: stars,
+    comment: input.comment?.trim() || null,
+  });
+  if (error) {
+    const text = error.message || "";
+    if (text.toLowerCase().includes("duplicate") || text.toLowerCase().includes("unique")) {
+      throw new Error("Tu as déjà laissé un avis pour cet échange.");
+    }
+    if (text.toLowerCase().includes("échange")) throw new Error("Un avis n’est possible qu’après un échange.");
+    throw new Error(text || "Impossible d’enregistrer l’avis.");
+  }
+  await refreshTutorRating(input.tutorId);
+}
+
+export async function replyToReview(reviewId: string, clerkId: string, reply: string) {
+  const text = reply.trim();
+  if (!text) throw new Error("La réponse est vide.");
+  const profile = await fetchMyTutorProfile(clerkId);
+  if (!profile) throw new Error("Annonce introuvable.");
+  const db = getSupabase();
+  const { error } = await db
+    .from("reviews")
+    .update({ reply: text, replied_at: new Date().toISOString() })
+    .eq("id", reviewId)
+    .eq("tutor_id", profile.id);
+  if (error) throw new Error(error.message || "Impossible d’enregistrer la réponse.");
+}
+
+export async function submitReport(input: {
+  reporterId: string;
+  targetType: "profile" | "conversation";
+  targetId: string;
+  reason: string;
+}) {
+  const db = getSupabase();
+  const { error } = await db.from("reports").insert({
+    reporter_id: input.reporterId,
+    target_type: input.targetType,
+    target_id: input.targetId,
+    reason: input.reason.trim(),
+  });
+  if (error) throw new Error(error.message || "Impossible d’envoyer le signalement.");
+}
+
+async function refreshTutorRating(tutorId: string) {
+  const db = getSupabase();
+  const { data, error } = await db.from("reviews").select("rating").eq("tutor_id", tutorId);
+  if (error) throw new Error(error.message);
+  const list = data ?? [];
+  const count = list.length;
+  const average =
+    count === 0
+      ? 0
+      : Math.round((list.reduce((sum, row) => sum + Number(row.rating || 0), 0) / count) * 10) / 10;
+  const { error: updateError } = await db
+    .from("profiles")
+    .update({ rating: average, review_count: count })
+    .eq("id", tutorId);
+  if (updateError) throw new Error(updateError.message);
+}
+
+function noteTutorReply(matchId: string) {
+  getSupabase()
+    .rpc("record_tutor_reply", { target_match: matchId })
+    .then(() => undefined, () => undefined);
 }
 
 const roleKey = (clerkId: string) => `clutch_user_role_${clerkId}`;
@@ -572,6 +706,7 @@ export async function sendText(input: {
     )
     .single();
   if (error) throw new Error(error.message);
+  if (input.senderRole === "tutor") noteTutorReply(input.matchId);
   return mapMessage(data);
 }
 
@@ -622,6 +757,7 @@ export async function sendPaymentRequest(input: {
     payment_status: "pending",
   });
   if (error) throw new Error(error.message);
+  noteTutorReply(input.matchId);
 }
 
 export async function ensureWallet(clerkId: string) {
@@ -711,6 +847,9 @@ export async function saveAnnouncement(
     longitude?: number | null;
     teachingFormats: string[];
     taughtLevels: string[];
+    diplomaTitle?: string;
+    diplomaSchool?: string;
+    diplomaYear?: number | null;
     avatarUrl?: string | null;
   }
 ) {
@@ -730,6 +869,9 @@ export async function saveAnnouncement(
     longitude: input.longitude ?? null,
     teaching_formats: input.teachingFormats,
     taught_levels: input.taughtLevels,
+    diploma_title: input.diplomaTitle?.trim() || null,
+    diploma_school: input.diplomaSchool?.trim() || null,
+    diploma_year: input.diplomaYear ?? null,
     role: "tutor",
     ...(input.avatarUrl ? { avatar_url: input.avatarUrl } : {}),
   };

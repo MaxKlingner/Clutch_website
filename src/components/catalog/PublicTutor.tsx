@@ -5,23 +5,24 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
 import { firstName, formatRate, Portrait } from "@/components/site/TutorCard";
+import ReportButton from "@/components/site/ReportButton";
 import {
   fetchFavoriteIds,
   fetchReviews,
   fetchTutor,
   findTutorMatch,
   toggleFavorite,
+  type Review,
   type Tutor,
 } from "@/lib/db";
+import { diplomaLine, responseLabel } from "@/lib/trust";
 
 export default function PublicTutor({ id }: { id: string }) {
   const { isSignedIn, userId } = useAuth();
   const router = useRouter();
   const [tutor, setTutor] = useState<Tutor | null>(null);
   const [saved, setSaved] = useState(false);
-  const [reviews, setReviews] = useState<
-    { id: string; rating: number; comment: string; createdAt: string }[]
-  >([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -107,6 +108,11 @@ export default function PublicTutor({ id }: { id: string }) {
                   {tutor.teachingFormats.join(" · ") || "Format à préciser"}
                   {tutor.taughtLevels.length ? ` · ${tutor.taughtLevels.join(" · ")}` : ""}
                 </p>
+                {responseLabel(tutor.responseMinutes) ? (
+                  <p className="mt-1 text-sm font-semibold text-black/55">
+                    {responseLabel(tutor.responseMinutes)}
+                  </p>
+                ) : null}
               </div>
               {isSignedIn ? (
                 <button
@@ -150,15 +156,30 @@ export default function PublicTutor({ id }: { id: string }) {
         </section>
       </div>
 
+      {diplomaLine(tutor) ? (
+        <section className="mt-4 rounded-3xl bg-white p-6">
+          <h2 className="font-extrabold">Diplôme</h2>
+          <p className="mt-3 text-sm leading-7 text-black/75">{diplomaLine(tutor)}</p>
+        </section>
+      ) : null}
+
       <section className="mt-4 rounded-3xl bg-white p-6">
         <h2 className="font-extrabold">Commentaires</h2>
         {reviews.length ? (
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {reviews.map((review) => (
-              <p key={review.id} className="text-sm leading-6 text-black/75">
-                <span className="text-[#e6b800]">{"★".repeat(review.rating)}</span>{" "}
-                {review.comment || "Avis sans commentaire."}
-              </p>
+              <div key={review.id} className="text-sm leading-6 text-black/75">
+                <p>
+                  <span className="text-[#e6b800]">{"★".repeat(review.rating)}</span>{" "}
+                  {review.comment || "Avis sans commentaire."}
+                </p>
+                {review.reply ? (
+                  <p className="mt-2 rounded-2xl bg-[#f6f7f8] px-3 py-2 text-black/70">
+                    <span className="font-extrabold">{name} répond. </span>
+                    {review.reply}
+                  </p>
+                ) : null}
+              </div>
             ))}
           </div>
         ) : (
@@ -174,6 +195,15 @@ export default function PublicTutor({ id }: { id: string }) {
           Envoyer un message
         </button>
         {error ? <p className="mt-2 text-center text-sm text-[#c23b3b]">{error}</p> : null}
+        <div className="mt-3 flex justify-center">
+          <ReportButton
+            userId={userId}
+            signedIn={Boolean(isSignedIn)}
+            targetType="profile"
+            targetId={tutor.id}
+            label="Signaler ce profil"
+          />
+        </div>
       </div>
     </main>
   );

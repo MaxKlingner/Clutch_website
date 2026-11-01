@@ -57,7 +57,7 @@ export default function TutorMap({
   focus = null,
 }: {
   tutors: Tutor[];
-  focus?: { lat: number; lng: number; radiusKm: number } | null;
+  focus?: { lat: number; lng: number; zoom?: number; radiusKm?: number } | null;
 }) {
   const router = useRouter();
   const node = useRef<HTMLDivElement>(null);
@@ -102,9 +102,15 @@ export default function TutorMap({
 
       const frame = () => {
         if (focus) {
-          map.fitBounds(L.latLng(focus.lat, focus.lng).toBounds(focus.radiusKm * 2000), {
-            padding: [8, 8],
-          });
+          if (focus.zoom != null) {
+            map.setView([focus.lat, focus.lng], focus.zoom);
+          } else if (focus.radiusKm != null) {
+            map.fitBounds(L.latLng(focus.lat, focus.lng).toBounds(focus.radiusKm * 2000), {
+              padding: [8, 8],
+            });
+          } else {
+            map.setView([focus.lat, focus.lng], 13);
+          }
         } else if (points.length === 1) {
           map.setView([points[0].lat, points[0].lng], 12);
         } else if (points.length > 1) {
@@ -132,7 +138,7 @@ export default function TutorMap({
     };
     // signature captures the tutor set shown on the map
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signature, router, focus?.lat, focus?.lng, focus?.radiusKm]);
+  }, [signature, router, focus?.lat, focus?.lng, focus?.zoom, focus?.radiusKm]);
 
   return <div ref={node} className="isolate h-[calc(100dvh-13rem)] min-h-[520px] w-full rounded-3xl" />;
 }

@@ -3,7 +3,6 @@
 import { useAuth } from "@clerk/clerk-react";
 import { useEffect, useMemo, useState } from "react";
 import FilterBar from "@/components/catalog/FilterBar";
-import SearchBar from "@/components/site/SearchBar";
 import TutorCard from "@/components/site/TutorCard";
 import TutorMap from "@/components/site/TutorMap";
 import { centroidForCity, matchesTutor, sortByProximity } from "@/components/site/filters";
@@ -61,9 +60,16 @@ export default function Catalog() {
   );
 
   const visible = useMemo(() => {
-    const limit = around ? (radiusKm == null ? 50 : Math.min(radiusKm, 50)) : radiusKm;
     const matched = tutors.filter((tutor) =>
-      matchesTutor(tutor, { query, city, formats, levels, maxRate, radiusKm: limit, origin })
+      matchesTutor(tutor, {
+        query,
+        city,
+        formats,
+        levels,
+        maxRate,
+        radiusKm,
+        origin,
+      })
     );
     return sortByProximity(matched, around);
   }, [tutors, query, city, formats, levels, maxRate, radiusKm, origin, around]);
@@ -93,21 +99,12 @@ export default function Catalog() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 pb-6 sm:px-6">
-      <div className="sticky top-[var(--site-header,3.5rem)] z-20 -mx-4 bg-[#f6f7f8] px-4 pt-4 pb-3 sm:-mx-6 sm:px-6">
-        <SearchBar prominent />
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <FilterBar
-            formats={formats}
-            levels={levels}
-            maxRate={maxRate}
-            radiusKm={radiusKm}
-            geoState={aroundState}
-            onFormats={setFormats}
-            onLevels={setLevels}
-            onMaxRate={setMaxRate}
-            onRadius={onRadius}
-          />
-          <div className="flex shrink-0 self-end rounded-full bg-white p-1 text-sm font-semibold sm:self-auto">
+      <div className="sticky top-[var(--site-header,3.5rem)] z-20 -mx-4 overflow-visible bg-[#f6f7f8] px-4 py-3 sm:-mx-6 sm:px-6">
+        <div
+          className="flex items-center gap-2"
+          style={{ paddingRight: "var(--header-search-end-inset, 0px)" }}
+        >
+          <div className="flex shrink-0 rounded-full bg-white p-1 text-sm font-semibold">
             <button
               type="button"
               onClick={() => setView("liste")}
@@ -123,16 +120,24 @@ export default function Catalog() {
               Carte
             </button>
           </div>
+          <FilterBar
+            formats={formats}
+            levels={levels}
+            maxRate={maxRate}
+            radiusKm={radiusKm}
+            geoState={aroundState}
+            onFormats={setFormats}
+            onLevels={setLevels}
+            onMaxRate={setMaxRate}
+            onRadius={onRadius}
+          />
         </div>
       </div>
-      <div className="mt-6">
-        <h1 className="font-display text-3xl font-bold tracking-tight">Professeurs disponibles</h1>
-        <p className="mt-1 text-sm text-black/55">
-          {loading ? "Chargement…" : `${visible.length} profil${visible.length > 1 ? "s" : ""}`}
-        </p>
-      </div>
+      <h1 className="font-display text-3xl font-bold tracking-tight">
+        Professeurs disponibles
+      </h1>
 
-      {error ? <p className="mt-6 text-sm text-[#c23b3b]">{error}</p> : null}
+      {error ? <p className="mt-4 text-sm text-[#c23b3b]">{error}</p> : null}
 
       {view === "liste" ? (
         <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -151,7 +156,7 @@ export default function Catalog() {
           <div className="relative z-0 mt-5 overflow-hidden rounded-3xl bg-white shadow-[0_8px_30px_rgba(15,28,26,0.06)]">
             <TutorMap
               tutors={visible}
-              focus={around ? { lat: around.lat, lng: around.lng, radiusKm: 50 } : null}
+              focus={around ? { lat: around.lat, lng: around.lng, zoom: 13 } : null}
             />
           </div>
           {unplaced ? (

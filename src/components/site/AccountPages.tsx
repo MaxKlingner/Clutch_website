@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import TutorCard from "@/components/site/TutorCard";
 import { useRequireUser } from "@/components/site/useRequireUser";
 import { fetchFavorites, toggleFavorite, type Tutor } from "@/lib/db";
+import { formatBirthInput, isAdultBirthDate } from "@/lib/trust";
 
 const field =
   "w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none focus:border-[#0d9f7a]";
@@ -75,6 +76,8 @@ export function Welcome() {
   const router = useRouter();
   const [role, setRole] = useState<"parent" | "tutor">("parent");
   const [city, setCity] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [singleAccount, setSingleAccount] = useState(false);
   const [error, setError] = useState("");
 
   if (!ready) return <Loading />;
@@ -83,9 +86,24 @@ export function Welcome() {
       <form
         onSubmit={async (event) => {
           event.preventDefault();
-          if (!userId) return;
+          if (!userId || !user) return;
+          if (!isAdultBirthDate(birthDate)) {
+            setError("Il faut avoir 18 ans pour ouvrir un compte. Écris la date en JJ/MM/AAAA.");
+            return;
+          }
+          if (!singleAccount) {
+            setError("Confirme que ce compte est le seul que tu utilises.");
+            return;
+          }
           try {
             const { saveSignupProfile } = await import("@/lib/db");
+            await user.update({
+              unsafeMetadata: {
+                ...user.unsafeMetadata,
+                birthDate,
+                singleAccount: true,
+              },
+            });
             await saveSignupProfile({
               clerkId: userId,
               role,
@@ -123,6 +141,31 @@ export function Welcome() {
           placeholder="Ville"
           className={`${field} mt-4`}
         />
+        <input
+          value={birthDate}
+          onChange={(event) => setBirthDate(formatBirthInput(event.target.value))}
+          inputMode="numeric"
+          placeholder="Date de naissance (JJ/MM/AAAA)"
+          className={`${field} mt-2`}
+        />
+        <label className="mt-4 flex items-start gap-3 text-sm leading-6 text-black/70">
+          <input
+            type="checkbox"
+            checked={singleAccount}
+            onChange={(event) => setSingleAccount(event.target.checked)}
+            className="mt-1"
+          />
+          <span>Je confirme que ce compte est le seul que j’utilise sur Clutch.</span>
+        </label>
+        <p className="mt-3 text-sm text-black/45">
+          <Link href="/conditions" className="font-semibold">
+            Conditions
+          </Link>
+          {" · "}
+          <Link href="/confidentialite" className="font-semibold">
+            Confidentialité
+          </Link>
+        </p>
         {error ? <p className="mt-3 text-sm text-[#c23b3b]">{error}</p> : null}
         <button className="mt-6 w-full rounded-full bg-[#0d9f7a] py-3 font-extrabold text-white">
           Continuer

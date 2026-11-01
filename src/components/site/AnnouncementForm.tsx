@@ -10,14 +10,18 @@ import { LEVEL_GROUPS, fold } from "@/components/site/filters";
 import {
   announcementPublished,
   fetchMyTutorProfile,
+  fetchReviews,
   FORMATS,
+  replyToReview,
   resetAnnouncement,
   ROLES,
   saveAnnouncement,
   setActiveRole,
   SPECIALTIES,
   uploadAnnouncementPhoto,
+  type Review,
 } from "@/lib/db";
+import { diplomaPayload } from "@/lib/trust";
 import { resolveLocationQuery, suggestLocations, type ResolvedPlace } from "@/lib/locations";
 
 const LEVEL_OPTIONS = ["Primaire", "Secondaire", "Supérieur", "Formation pour adultes"] as const;
@@ -32,6 +36,12 @@ export default function AnnouncementForm() {
   const [bio, setBio] = useState("");
   const [aboutTutor, setAboutTutor] = useState("");
   const [aboutCourse, setAboutCourse] = useState("");
+  const [diplomaTitle, setDiplomaTitle] = useState("");
+  const [diplomaSchool, setDiplomaSchool] = useState("");
+  const [diplomaYear, setDiplomaYear] = useState("");
+  const [profileId, setProfileId] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [rate, setRate] = useState(25);
   const [city, setCity] = useState("");
   const [place, setPlace] = useState<ResolvedPlace | null>(null);
@@ -55,6 +65,16 @@ export default function AnnouncementForm() {
       setBio(profile.bio);
       setAboutTutor(profile.aboutTutor);
       setAboutCourse(profile.aboutCourse);
+      setDiplomaTitle(profile.diplomaTitle);
+      setDiplomaSchool(profile.diplomaSchool);
+      setDiplomaYear(profile.diplomaYear ? String(profile.diplomaYear) : "");
+      setProfileId(profile.id);
+      fetchReviews(profile.id)
+        .then((rows) => {
+          setReviews(rows);
+          setReplyDrafts(Object.fromEntries(rows.map((row) => [row.id, row.reply])));
+        })
+        .catch(() => setReviews([]));
       setRate(profile.hourlyRate || 25);
       setCity(profile.city || "");
       if (profile.city && profile.latitude != null && profile.longitude != null) {
@@ -117,6 +137,11 @@ export default function AnnouncementForm() {
       setError("Choisis au moins une matière. C’est ce qui publie l’annonce.");
       return;
     }
+    const diploma = diplomaPayload(diplomaTitle, diplomaSchool, diplomaYear);
+    if ("error" in diploma) {
+      setError(diploma.error ?? "Diplôme invalide.");
+      return;
+    }
     const resolved = place ?? resolveLocationQuery(city);
     if (city.trim() && !resolved) {
       setError("Choisis une commune dans la liste.");
@@ -142,6 +167,9 @@ export default function AnnouncementForm() {
         longitude: resolved?.longitude ?? null,
         teachingFormats: formats,
         taughtLevels: levels,
+        diplomaTitle: diploma.diplomaTitle,
+        diplomaSchool: diploma.diplomaSchool,
+        diplomaYear: diploma.diplomaYear,
         avatarUrl,
       });
       await setActiveRole(userId, ROLES.TUTOR, user?.fullName);
@@ -314,6 +342,27 @@ export default function AnnouncementForm() {
             hint="Diplômes, années de pratique, élèves déjà suivis. Écris à la première personne."
           >
             <CountedText value={aboutTutor} max={80} rows={5} onChange={setAboutTutor} />
+            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+              <input
+                value={diplomaTitle}
+                onChange={(event) => setDiplomaTitle(event.target.value)}
+                placeholder="Intitulé du diplôme"
+                className={field}
+              />
+              <input
+                value={diplomaSchool}
+                onChange={(event) => setDiplomaSchool(event.target.value)}
+                placeholder="Établissement"
+                className={field}
+              />
+              <input
+                value={diplomaYear}
+                onChange={(event) => setDiplomaYear(event.target.value.replace(/\D/g, "").slice(0, 4))}
+                inputMode="numeric"
+                placeholder="Année"
+                className={field}
+              />
+            </div>
           </Section>
 
           <Section
@@ -439,6 +488,47 @@ export default function AnnouncementForm() {
           ) : null}
         </aside>
       </form>
+      {profileId && reviews.length ? (
+        <section className="mt-4 rounded-3xl bg-white p-5 shadow-[0_8px_30px_rgba(15,28,26,0.06)] sm:p-6">
+          <h2 className="font-extrabold">Avis</h2>
+          <p className="mt-1 text-sm text-black/50">Ta réponse apparaît sous l’avis, sur ta fiche.</p>
+          <div className="mt-4 space-y-4">
+            {reviews.map((review) => (
+              <div key={review.id} className="rounded-2xl bg-[#f6f7f8] p-4">
+                <p className="text-sm leading-6 text-black/75">
+                  <span className="text-[#e6b800]">{"★".repeat(review.rating)}</span>{" "}
+                  {review.comment || "Avis sans commentaire."}
+                </p>
+                <textarea
+                  value={replyDrafts[review.id] ?? ""}
+                  onChange={(event) =>
+                    setReplyDrafts((current) => ({ ...current, [review.id]: event.target.value }))
+                  }
+                  rows={2}
+                  placeholder="Répondre à cet avis"
+                  className={`${field} mt-3 bg-white`}
+                />
+                <button
+                  type="button"
+                  className="mt-2 rounded-full bg-[#12382c] px-4 py-2 text-sm font-extrabold text-white"
+                  onClick={async () => {
+                    if (!userId) return;
+                    setError("");
+                    try {
+                      await replyToReview(review.id, userId, replyDrafts[review.id] || "");
+                      setMessage("Réponse publiée sous l’avis.");
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : "Réponse impossible.");
+                    }
+                  }}
+                >
+                  Publier la réponse
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
       {cropFile ? (
         <PhotoCropper
           file={cropFile}

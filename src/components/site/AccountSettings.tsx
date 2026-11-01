@@ -13,6 +13,7 @@ import {
   saveAccountIdentity,
   setAccountAvatar,
 } from "@/lib/db";
+import { isAdultBirthDate } from "@/lib/trust";
 
 const GENDERS = ["Homme", "Femme", "Je ne souhaite pas préciser"] as const;
 
@@ -153,6 +154,11 @@ export default function AccountSettings() {
     setSaving(true);
     setError("");
     setMessage("");
+    if (birthDate.trim() && !isAdultBirthDate(birthDate)) {
+      setError("Il faut avoir 18 ans. La date s’écrit JJ/MM/AAAA.");
+      setSaving(false);
+      return;
+    }
     try {
       await user.update({
         firstName: firstName.trim(),
@@ -383,6 +389,17 @@ export default function AccountSettings() {
       >
         {saving ? "Enregistrement…" : "Enregistrer"}
       </button>
+
+      <p className="mt-6 text-sm text-black/45">
+        Un seul compte par personne, à partir de 18 ans.{" "}
+        <Link href="/conditions" className="font-semibold">
+          Conditions
+        </Link>
+        {" · "}
+        <Link href="/confidentialite" className="font-semibold">
+          Confidentialité
+        </Link>
+      </p>
 
       {confirmDelete ? (
         <div className="mt-6 rounded-2xl bg-white p-4 text-sm">

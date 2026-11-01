@@ -69,24 +69,30 @@ export default function FilterBar({
   ];
 
   return (
-    <div ref={root} className="relative z-10 grid w-full min-w-0 flex-1 grid-cols-2 gap-2 sm:grid-cols-4">
-      {chips.map((chip) => (
-        <div key={chip.key} className="relative min-w-0">
+    <div ref={root} className="relative z-40 flex min-w-0 flex-1 gap-2 overflow-visible">
+      {chips.map((chip, index) => (
+        <div key={chip.key} className="relative min-w-0 flex-1">
           <button
             type="button"
             aria-expanded={panel === chip.key}
             onClick={() => setPanel((current) => (current === chip.key ? null : chip.key))}
-            className={`flex w-full items-center justify-between rounded-xl border px-2.5 py-2.5 text-sm font-semibold sm:px-3 ${
+            className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold ${
               chip.active
                 ? "border-[#12382c] bg-[#12382c] text-white"
                 : "border-black/10 bg-white text-black/70"
             }`}
           >
             <span className="truncate">{chip.label}</span>
-            <span className="ml-2 text-[10px] opacity-60">{panel === chip.key ? "▴" : "▾"}</span>
+            <span className="ml-1 shrink-0 text-[10px] opacity-60">
+              {panel === chip.key ? "▴" : "▾"}
+            </span>
           </button>
           {panel === chip.key ? (
-            <div className="absolute top-[calc(100%+8px)] right-0 left-0 z-30 rounded-2xl bg-white p-2 shadow-[0_18px_50px_rgba(15,28,26,0.14)] ring-1 ring-black/5">
+            <div
+              className={`absolute top-[calc(100%+8px)] z-50 w-56 rounded-2xl bg-white p-2 shadow-[0_18px_50px_rgba(15,28,26,0.14)] ring-1 ring-black/5 ${
+                index >= chips.length - 2 ? "right-0" : "left-0"
+              }`}
+            >
               {chip.key === "format"
                 ? FORMATS.map((item) => (
                     <Choice
