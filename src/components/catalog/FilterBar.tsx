@@ -69,9 +69,9 @@ export default function FilterBar({
   ];
 
   return (
-    <div ref={root} className="relative z-40 flex min-w-0 flex-1 gap-2 overflow-visible">
+    <div ref={root} className="relative z-40 grid min-w-0 flex-1 grid-cols-2 gap-2 overflow-visible sm:flex">
       {chips.map((chip, index) => (
-        <div key={chip.key} className="relative min-w-0 flex-1">
+        <div key={chip.key} className="relative min-w-0 sm:flex-1">
           <button
             type="button"
             aria-expanded={panel === chip.key}

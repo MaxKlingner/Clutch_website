@@ -1,20 +1,80 @@
+import Link from "next/link";
 import RulesPage from "@/components/site/RulesPage";
 
 export default function Page() {
   return (
     <RulesPage title="Confidentialité">
-      <p>Clutch garde ce qui sert à faire fonctionner le site et l’application.</p>
       <p>
-        Le compte contient le nom, l’e-mail, la date de naissance, le téléphone, l’adresse et la photo. L’annonce contient les textes, le diplôme, la commune et les matières. Les conversations, les avis, les réponses et les signalements sont aussi enregistrés.
+        Clutch (édité par Max Klingner, Rue des Cerisiers 1, 1390 Grez-Doiceau, Belgique) collecte
+        uniquement les données nécessaires au fonctionnement gratuit de la mise en relation entre
+        élèves, parents et professeurs particuliers.
       </p>
       <p>
-        Ces informations servent à afficher les professeurs, à envoyer les messages, à calculer une note et un délai de réponse, et à lire un signalement. Elles ne sont pas vendues.
+        <strong className="font-semibold text-black">Données enregistrées</strong>
+        <br />
+        Le compte contient le prénom, le nom, l’adresse e-mail, la date de naissance, le téléphone,
+        l’adresse postale, le genre (facultatif) et la photo. L’annonce publique affiche le prénom, la
+        photo, la commune, les matières, les niveaux, les formats, le tarif horaire, les textes de
+        présentation et le diplôme éventuel. Si le professeur choisit d’ajouter un numéro de
+        téléphone sur son annonce, celui-ci reste masqué aux visiteurs sans compte et n’est visible
+        que par les membres connectés. Les discussions, confirmations de cours, avis, réponses et
+        signalements sont également enregistrés.
       </p>
       <p>
-        La connexion utilise un cookie pour te reconnaître. Il n’y a pas de publicité basée sur ta navigation.
+        <strong className="font-semibold text-black">Finalités, notifications et modération</strong>
+        <br />
+        Ces informations servent à afficher les annonces, permettre la messagerie entre membres,
+        calculer la note moyenne et le délai de réponse, envoyer des notifications par e-mail lors de
+        nouveaux messages (désactivables depuis la page{" "}
+        <Link href="/compte" className="font-semibold text-[#0d9f7a] underline">
+          Compte
+        </Link>
+        ) et traiter les signalements. Les messages privés ne sont consultés par l’éditeur qu’en cas
+        de signalement. Les données ne sont jamais vendues.
       </p>
-      <p>Tu peux supprimer ton compte depuis la page Compte. Cela retire l’accès à Clutch.</p>
-      <p>Pour une question sur ces données, utilise le bouton Signaler sur un profil ou dans une conversation.</p>
+      <p>
+        <strong className="font-semibold text-black">Prestataires techniques</strong>
+        <br />
+        Le service repose sur Vercel (hébergement web), Supabase (base de données et stockage de
+        fichiers en région Union européenne — Paris), Clerk (authentification et session), Resend
+        (envoi des e-mails de notification) et OpenStreetMap (affichage de la carte).
+      </p>
+      <p>
+        <strong className="font-semibold text-black">Durée de conservation</strong>
+        <br />
+        Les données du compte, de l’annonce et des échanges sont conservées tant que le compte reste
+        actif. Lorsque tu supprimes ton compte depuis la page{" "}
+        <Link href="/compte" className="font-semibold text-[#0d9f7a] underline">
+          Compte
+        </Link>
+        , tes données de profil et ton annonce sont immédiatement supprimées ou anonymisées.
+      </p>
+      <p>
+        <strong className="font-semibold text-black">Cookies</strong>
+        <br />
+        Seuls les cookies techniques nécessaires à la connexion et à la session sont utilisés. Aucun
+        traceur publicitaire n’est présent sur le site.
+      </p>
+      <p>
+        <strong className="font-semibold text-black">Tes droits (RGPD)</strong>
+        <br />
+        Conformément au RGPD, tu disposes d’un droit d’accès, de rectification, d’effacement, de
+        limitation et d’opposition sur tes données. Pour les exercer, écris à{" "}
+        <a href="mailto:hello@clutch.education" className="font-semibold text-[#0d9f7a] underline">
+          hello@clutch.education
+        </a>
+        . Tu peux aussi introduire une réclamation auprès de l’Autorité de protection des données
+        (APD) en Belgique sur{" "}
+        <a
+          href="https://www.autoriteprotectiondonnees.be"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-[#0d9f7a] underline"
+        >
+          autoriteprotectiondonnees.be
+        </a>
+        .
+      </p>
     </RulesPage>
   );
 }

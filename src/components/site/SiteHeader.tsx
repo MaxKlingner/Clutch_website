@@ -2,18 +2,26 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuth, useClerk } from "@clerk/clerk-react";
+import { useAuth, useClerk, useUser } from "@clerk/clerk-react";
 import { useEffect, useRef, useState } from "react";
 import BrandLogo from "@/components/BrandLogo";
 import SearchBar from "@/components/site/SearchBar";
-import { announcementPublished, fetchMyTutorProfile } from "@/lib/db";
+import {
+  announcementPublished,
+  fetchMyTutorProfile,
+  fetchUnreadCount,
+  subscribeIncomingMessages,
+  syncUserEmail,
+} from "@/lib/db";
 
 export default function SiteHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { isSignedIn, userId } = useAuth();
+  const { user } = useUser();
   const { signOut } = useClerk();
   const [hasListing, setHasListing] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
@@ -51,10 +59,7 @@ export default function SiteHeader() {
   }, [open]);
 
   useEffect(() => {
-    if (!userId) {
-      setHasListing(false);
-      return;
-    }
+    if (!userId) return;
     const load = () => {
       fetchMyTutorProfile(userId)
         .then((profile) => setHasListing(announcementPublished(profile)))
@@ -65,8 +70,50 @@ export default function SiteHeader() {
     return () => window.removeEventListener("clutch-announcement", load);
   }, [userId, pathname]);
 
+  useEffect(() => {
+    if (!userId) return;
+    let cancel = false;
+    const refresh = () => {
+      fetchUnreadCount(userId)
+        .then((count) => {
+          if (!cancel) setUnreadCount(count);
+        })
+        .catch(() => undefined);
+    };
+    refresh();
+    window.addEventListener("clutch-messages", refresh);
+    const unsubscribe = subscribeIncomingMessages(refresh);
+    return () => {
+      cancel = true;
+      window.removeEventListener("clutch-messages", refresh);
+      unsubscribe();
+    };
+  }, [userId, pathname]);
+
+  const primaryEmail = user?.primaryEmailAddress?.emailAddress || "";
+  const clerkFullName = user?.fullName || null;
+  useEffect(() => {
+    if (!userId || !primaryEmail) return;
+    const key = `clutch_email_synced_${userId}:${primaryEmail}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+    } catch {
+      // Ignore storage errors
+    }
+    syncUserEmail(userId, primaryEmail, clerkFullName)
+      .then(() => {
+        try {
+          sessionStorage.setItem(key, "1");
+        } catch {
+          // Ignore storage errors
+        }
+      })
+      .catch(() => undefined);
+  }, [userId, primaryEmail, clerkFullName]);
+
   const teachHref = isSignedIn ? "/annonce" : "/inscription";
-  const teachLabel = hasListing ? "Mon annonce" : "Donner des cours";
+  const teachLabel = Boolean(userId) && hasListing ? "Mon annonce" : "Donner des cours";
+  const shownUnread = userId ? unreadCount : 0;
 
   return (
     <header ref={headerRef} className="sticky top-0 z-30 border-b border-black/5 bg-white">
@@ -74,14 +121,14 @@ export default function SiteHeader() {
         <Link href="/" className="shrink-0" aria-label="Clutch">
           <BrandLogo size={32} />
         </Link>
-        <div className="min-w-0 flex-1">
+        <div className="hidden min-w-0 flex-1 md:block">
           <SearchBar />
         </div>
         <div
           ref={navRef}
           className="ml-auto flex shrink-0 items-center gap-0.5 text-sm font-semibold sm:gap-2"
         >
-          <Link href={teachHref} className="rounded-full px-2 py-2 hover:bg-black/5 sm:px-3">
+          <Link href={teachHref} className="rounded-full px-2.5 py-2 hover:bg-black/5 sm:px-3">
             {teachLabel}
           </Link>
           {isSignedIn ? (
@@ -89,7 +136,12 @@ export default function SiteHeader() {
               <IconLink href="/favoris" label="Favoris" active={pathname.startsWith("/favoris")}>
                 <HeartIcon filled={pathname.startsWith("/favoris")} />
               </IconLink>
-              <IconLink href="/messages" label="Messages" active={pathname.startsWith("/messages")}>
+              <IconLink
+                href="/messages"
+                label={shownUnread ? `Messages (${shownUnread} non lus)` : "Messages"}
+                active={pathname.startsWith("/messages")}
+                badge={shownUnread}
+              >
                 <MessagesIcon />
               </IconLink>
               <div className="relative" ref={menuRef}>
@@ -134,11 +186,9 @@ export default function SiteHeader() {
           )}
         </div>
       </div>
-      {pathname === "/" ? null : (
-        <div className="mx-auto flex max-w-6xl gap-2 px-4 pb-3 md:hidden">
-          <SearchBar />
-        </div>
-      )}
+      <div className="mx-auto flex max-w-6xl gap-2 px-4 pb-3 md:hidden">
+        <SearchBar />
+      </div>
     </header>
   );
 }
@@ -147,11 +197,13 @@ function IconLink({
   href,
   label,
   active,
+  badge = 0,
   children,
 }: {
   href: string;
   label: string;
   active: boolean;
+  badge?: number;
   children: React.ReactNode;
 }) {
   return (
@@ -159,11 +211,16 @@ function IconLink({
       href={href}
       aria-label={label}
       title={label}
-      className={`grid h-10 w-10 place-items-center rounded-full ${
+      className={`relative grid h-10 w-10 place-items-center rounded-full ${
         active ? "bg-[#e7f6f1] text-[#087a5c]" : "text-[#1c1c1c] hover:bg-black/5"
       }`}
     >
       {children}
+      {badge > 0 ? (
+        <span className="absolute top-0.5 right-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#ff5c3a] px-1 text-[10px] font-extrabold leading-none text-white">
+          {badge > 9 ? "9+" : badge}
+        </span>
+      ) : null}
     </Link>
   );
 }

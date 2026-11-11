@@ -14,13 +14,21 @@ function escapeHtml(value: string) {
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function safeImageUrl(url: string | null) {
+  if (!url) return null;
+  if (url.startsWith("/") || /^https?:\/\//i.test(url) || url.startsWith("blob:")) return url;
+  return null;
 }
 
 function pinHtml(tutor: Tutor, name: string, rate: string, dx: number, dy: number) {
   const safeName = escapeHtml(name);
-  const photo = tutor.avatarUrl
-    ? `<img src="${escapeHtml(tutor.avatarUrl)}" alt="" />`
+  const avatar = safeImageUrl(tutor.avatarUrl);
+  const photo = avatar
+    ? `<img src="${escapeHtml(avatar)}" alt="" />`
     : `<span class="tutor-pin-fallback">${escapeHtml(name.slice(0, 1) || "?")}</span>`;
   const shift = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
   return `<span class="tutor-pin-label" style="transform:${shift}">${photo}<span class="tutor-pin-text"><strong>${safeName}</strong><b>${escapeHtml(rate)} €</b></span></span>`;

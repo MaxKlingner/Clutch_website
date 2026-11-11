@@ -92,9 +92,15 @@ export default function PhotoCropper({
   }
 
   useEffect(() => {
+    let active = true;
     const url = URL.createObjectURL(file);
-    setSrc(url);
-    return () => URL.revokeObjectURL(url);
+    queueMicrotask(() => {
+      if (active) setSrc(url);
+    });
+    return () => {
+      active = false;
+      URL.revokeObjectURL(url);
+    };
   }, [file]);
 
   useEffect(() => {

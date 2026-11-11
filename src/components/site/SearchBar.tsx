@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSiteSearch } from "@/components/site/Search";
 import { subjectSuggestions } from "@/components/site/filters";
+import { suggestLocations } from "@/lib/locations";
 
 const RECENT_KEY = "clutch_recent_search";
 
@@ -28,6 +29,7 @@ export default function SearchBar({ prominent = false }: { prominent?: boolean }
   const root = useRef<HTMLDivElement>(null);
   const seeded = useRef(false);
   const [panel, setPanel] = useState<"subject" | "place" | null>(null);
+  const [placeDraft, setPlaceDraft] = useState("");
   const [recent, setRecent] = useState<Recent | null>(null);
 
   useEffect(() => {
@@ -36,9 +38,12 @@ export default function SearchBar({ prominent = false }: { prominent?: boolean }
     const params = new URLSearchParams(window.location.search);
     const nextQuery = params.get("q");
     const nextCity = params.get("ville");
-    if (nextQuery) setQuery(nextQuery);
-    if (nextCity) setCity(nextCity);
-    setRecent(readRecent());
+    const saved = readRecent();
+    queueMicrotask(() => {
+      if (nextQuery) setQuery(nextQuery);
+      if (nextCity) setCity(nextCity);
+      if (saved) setRecent(saved);
+    });
   }, [setQuery, setCity]);
 
   useEffect(() => {
@@ -68,23 +73,43 @@ export default function SearchBar({ prominent = false }: { prominent?: boolean }
     goHome();
   }
 
+  function pickCity(value: string) {
+    const next = value.trim();
+    clearAround();
+    setCity(next);
+    setPlaceDraft(next);
+    remember(query, next);
+    setPanel(null);
+    goHome();
+  }
+
   function chooseAround() {
     setPanel(null);
+    setPlaceDraft("");
     requestAround();
     goHome();
   }
 
   function chooseEverywhere() {
     setPanel(null);
+    setCity("");
+    setPlaceDraft("");
     clearAround();
     goHome();
   }
 
   const subjects = subjectSuggestions(query);
+  const placeSuggestions = panel === "place" ? suggestLocations(placeDraft) : [];
   const showRecent = panel === "subject" && !query.trim() && recent;
   const showSubjects = panel === "subject" && subjects.length > 0;
   const placeLabel =
-    aroundState === "pending" ? "Autorisation…" : around ? "Du plus proche" : "Partout";
+    aroundState === "pending"
+      ? "Autorisation…"
+      : around
+        ? "Du plus proche"
+        : city.trim()
+          ? city.trim()
+          : "Partout";
 
   return (
     <div ref={root} className={`relative min-w-0 ${prominent ? "z-20" : "flex-1"}`}>
@@ -105,6 +130,13 @@ export default function SearchBar({ prominent = false }: { prominent?: boolean }
             }}
             onClick={() => setPanel("subject")}
             onFocus={() => setPanel("subject")}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                remember(query, city);
+                setPanel(null);
+                goHome();
+              }
+            }}
             placeholder="Quelle matière ?"
             aria-label="Quelle matière ?"
             className={
@@ -121,7 +153,9 @@ export default function SearchBar({ prominent = false }: { prominent?: boolean }
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => {
                     setQuery(recent.query);
+                    if (recent.city) clearAround();
                     setCity(recent.city);
+                    setPlaceDraft(recent.city);
                     setPanel(null);
                     goHome();
                   }}
@@ -158,8 +192,12 @@ export default function SearchBar({ prominent = false }: { prominent?: boolean }
         <div className={prominent ? "relative min-w-0 flex-1" : "relative max-w-[9.5rem] shrink-0 sm:max-w-none sm:w-44"}>
           <button
             type="button"
-            onClick={() => setPanel((current) => (current === "place" ? null : "place"))}
+            onClick={() => {
+              setPlaceDraft(city);
+              setPanel((current) => (current === "place" ? null : "place"));
+            }}
             aria-expanded={panel === "place"}
+            aria-label={`Lieu : ${placeLabel}`}
             className={
               prominent
                 ? "h-12 w-full truncate rounded-xl px-4 text-left text-base text-[#1c1c1c]"
@@ -169,13 +207,44 @@ export default function SearchBar({ prominent = false }: { prominent?: boolean }
             {placeLabel}
           </button>
           {panel === "place" ? (
-            <div className="absolute top-[calc(100%+8px)] right-0 left-0 z-30 overflow-hidden rounded-2xl bg-white py-1 shadow-[0_18px_50px_rgba(15,28,26,0.14)] ring-1 ring-black/5">
+            <div className="absolute top-[calc(100%+8px)] right-0 z-30 w-64 overflow-hidden rounded-2xl bg-white p-2 shadow-[0_18px_50px_rgba(15,28,26,0.14)] ring-1 ring-black/5 sm:w-72">
+              <input
+                value={placeDraft}
+                onChange={(event) => setPlaceDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    if (placeDraft.trim()) pickCity(placeDraft);
+                    else chooseEverywhere();
+                  }
+                }}
+                placeholder="Ville ou code postal…"
+                aria-label="Ville ou code postal"
+                autoFocus
+                className="mb-1.5 h-10 w-full rounded-xl border border-black/10 bg-[#f6f7f8] px-3 text-sm outline-none focus:border-[#0d9f7a] focus:bg-white"
+              />
+              {placeSuggestions.length > 0 ? (
+                <div className="mb-1.5 max-h-48 overflow-y-auto border-b border-black/5 pb-1.5">
+                  {placeSuggestions.map((item) => (
+                    <button
+                      key={`${item.postalCode}-${item.name}`}
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => pickCity(item.name)}
+                      className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm hover:bg-[#f3f7f5]"
+                    >
+                      <span className="truncate font-semibold">{item.name}</span>
+                      <span className="ml-2 shrink-0 text-xs text-black/45">{item.postalCode}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               <button
                 type="button"
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={chooseEverywhere}
-                className={`block w-full px-4 py-2.5 text-left text-sm hover:bg-[#f3f7f5] ${
-                  around ? "font-medium" : "bg-[#e7f6f1] font-semibold text-[#087a5c]"
+                className={`block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-[#f3f7f5] ${
+                  !around && !city.trim() ? "bg-[#e7f6f1] font-semibold text-[#087a5c]" : "font-medium"
                 }`}
               >
                 Partout
@@ -184,14 +253,14 @@ export default function SearchBar({ prominent = false }: { prominent?: boolean }
                 type="button"
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={chooseAround}
-                className={`block w-full px-4 py-2.5 text-left text-sm hover:bg-[#f3f7f5] ${
+                className={`block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-[#f3f7f5] ${
                   around ? "bg-[#e7f6f1] font-semibold text-[#087a5c]" : "font-semibold"
                 }`}
               >
                 Du plus proche
               </button>
               {aroundState === "denied" ? (
-                <p className="px-4 pb-2 text-xs leading-5 text-black/50">
+                <p className="px-3 pt-1 pb-1 text-xs leading-5 text-black/50">
                   Autorisation refusée par le navigateur.
                 </p>
               ) : null}

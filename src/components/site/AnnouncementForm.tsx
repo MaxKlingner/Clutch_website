@@ -9,8 +9,10 @@ import { useRequireUser } from "@/components/site/useRequireUser";
 import { LEVEL_GROUPS, fold } from "@/components/site/filters";
 import {
   announcementPublished,
+  fetchAccountIdentity,
   fetchMyTutorProfile,
   fetchReviews,
+  fetchTutorContactPhone,
   FORMATS,
   replyToReview,
   resetAnnouncement,
@@ -44,6 +46,7 @@ export default function AnnouncementForm() {
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [rate, setRate] = useState(25);
   const [city, setCity] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
   const [place, setPlace] = useState<ResolvedPlace | null>(null);
   const [placeOpen, setPlaceOpen] = useState(false);
   const placeRoot = useRef<HTMLDivElement>(null);
@@ -92,6 +95,13 @@ export default function AnnouncementForm() {
       setLevels(coarseLevels(profile.taughtLevels));
       setPhotoUrl(profile.avatarUrl);
       setPublished(announcementPublished(profile));
+      if (profile.hasContactPhone) {
+        fetchTutorContactPhone(profile.id)
+          .then((phone) => {
+            if (phone) setContactPhone(phone);
+          })
+          .catch(() => undefined);
+      }
     });
   }, [userId]);
 
@@ -137,6 +147,22 @@ export default function AnnouncementForm() {
       setError("Choisis au moins une matière. C’est ce qui publie l’annonce.");
       return;
     }
+    if (countWords(bio) > 24) {
+      setError("L’accroche ne doit pas dépasser 24 mots.");
+      return;
+    }
+    if (countWords(aboutTutor) > 80) {
+      setError("La section « À propos de toi » ne doit pas dépasser 80 mots.");
+      return;
+    }
+    if (countWords(aboutCourse) > 80) {
+      setError("La section « À propos du cours » ne doit pas dépasser 80 mots.");
+      return;
+    }
+    if (!Number.isFinite(rate) || rate < 5 || rate > 150) {
+      setError("Le tarif horaire doit être compris entre 5 € et 150 €.");
+      return;
+    }
     const diploma = diplomaPayload(diplomaTitle, diplomaSchool, diplomaYear);
     if ("error" in diploma) {
       setError(diploma.error ?? "Diplôme invalide.");
@@ -147,18 +173,28 @@ export default function AnnouncementForm() {
       setError("Choisis une commune dans la liste.");
       return;
     }
+    const cleanPhone = contactPhone.trim();
+    if (cleanPhone && cleanPhone.replace(/\D/g, "").length < 6) {
+      setError("Le numéro de téléphone semble incomplet.");
+      return;
+    }
     setSaving(true);
     setError("");
     setMessage("");
     try {
+      let fullName = user?.fullName?.trim() || "";
+      if (!fullName) {
+        const identity = await fetchAccountIdentity(userId).catch(() => null);
+        fullName = [identity?.firstName, identity?.lastName].filter(Boolean).join(" ").trim();
+      }
       const avatarUrl = photoFile
         ? await uploadAnnouncementPhoto(userId, photoFile)
         : photoUrl || user?.imageUrl || null;
       await saveAnnouncement(userId, {
-        fullName: user?.fullName || "Tuteur",
-        bio: clipWords(bio, 24),
-        aboutTutor: clipWords(aboutTutor, 80),
-        aboutCourse: clipWords(aboutCourse, 80),
+        fullName: fullName || "Tuteur",
+        bio: bio.trim(),
+        aboutTutor: aboutTutor.trim(),
+        aboutCourse: aboutCourse.trim(),
         specialties,
         hourlyRate: rate,
         city: resolved?.name || city,
@@ -170,14 +206,12 @@ export default function AnnouncementForm() {
         diplomaTitle: diploma.diplomaTitle,
         diplomaSchool: diploma.diplomaSchool,
         diplomaYear: diploma.diplomaYear,
+        contactPhone: cleanPhone || null,
         avatarUrl,
       });
-      await setActiveRole(userId, ROLES.TUTOR, user?.fullName);
+      await setActiveRole(userId, ROLES.TUTOR, fullName || user?.fullName);
       setPhotoFile(null);
       if (avatarUrl) setPhotoUrl(avatarUrl);
-      setBio(clipWords(bio, 24));
-      setAboutTutor(clipWords(aboutTutor, 80));
-      setAboutCourse(clipWords(aboutCourse, 80));
       setPublished(true);
       setMessage("Annonce en ligne. Elle apparaît chez les professeurs disponibles.");
       window.dispatchEvent(new Event("clutch-announcement"));
@@ -201,6 +235,7 @@ export default function AnnouncementForm() {
       setBio("");
       setAboutTutor("");
       setAboutCourse("");
+      setContactPhone("");
       setPublished(false);
       setMessage("Annonce retirée. Elle n’apparaît plus dans la liste.");
       window.dispatchEvent(new Event("clutch-announcement"));
@@ -224,6 +259,10 @@ export default function AnnouncementForm() {
 
   const name = user?.fullName || "Toi";
   const shownPhoto = photoUrl || user?.imageUrl || null;
+  const accountPhone =
+    (typeof user?.unsafeMetadata?.phone === "string" ? user.unsafeMetadata.phone.trim() : "") ||
+    user?.primaryPhoneNumber?.phoneNumber ||
+    "";
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -319,6 +358,34 @@ export default function AnnouncementForm() {
                   </p>
                 ) : null}
               </div>
+            </div>
+            <div className="mt-5 border-t border-black/5 pt-4 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-semibold text-black/70">
+                  Téléphone affiché sur l’annonce (facultatif)
+                </span>
+                {accountPhone && contactPhone !== accountPhone ? (
+                  <button
+                    type="button"
+                    onClick={() => setContactPhone(accountPhone)}
+                    className="text-xs font-bold text-[#087a5c] hover:underline"
+                  >
+                    Utiliser le numéro de mon compte
+                  </button>
+                ) : null}
+              </div>
+              <input
+                type="tel"
+                inputMode="tel"
+                value={contactPhone}
+                onChange={(event) => setContactPhone(event.target.value)}
+                placeholder="ex. +32 470 12 34 56"
+                className={`${field} mt-2`}
+              />
+              <p className="mt-2 text-xs leading-5 text-black/50">
+                Facultatif. Ce numéro reste masqué pour les visiteurs et n’est visible que par les
+                utilisateurs connectés avec un compte.
+              </p>
             </div>
           </Section>
 
@@ -636,10 +703,6 @@ function Picker({
 function countWords(value: string) {
   const trimmed = value.trim();
   return trimmed ? trimmed.split(/\s+/).length : 0;
-}
-
-function clipWords(value: string, max: number) {
-  return value.trim().split(/\s+/).filter(Boolean).slice(0, max).join(" ");
 }
 
 function normalizeFormats(formats: string[]) {

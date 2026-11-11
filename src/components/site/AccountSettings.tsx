@@ -8,10 +8,14 @@ import PhotoCropper, { photoFileError } from "@/components/site/PhotoCropper";
 import { Portrait } from "@/components/site/TutorCard";
 import { useRequireUser } from "@/components/site/useRequireUser";
 import {
+  deleteAccountData,
   fetchAccountIdentity,
+  fetchEmailNotifications,
   fetchMyTutorProfile,
   saveAccountIdentity,
   setAccountAvatar,
+  setEmailNotifications as saveEmailNotifications,
+  syncUserEmail,
 } from "@/lib/db";
 import { isAdultBirthDate } from "@/lib/trust";
 
@@ -20,21 +24,50 @@ const GENDERS = ["Homme", "Femme", "Je ne souhaite pas préciser"] as const;
 const field =
   "w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:border-[#12382c]";
 
+type ClerkUser = NonNullable<ReturnType<typeof useUser>["user"]>;
+
 export default function AccountSettings() {
   const ready = useRequireUser();
   const { userId } = useAuth();
   const { user } = useUser();
+
+  if (!ready || !userId || !user) {
+    return (
+      <main className="mx-auto max-w-xl px-4 py-8 sm:px-6">
+        <Link href="/" className="text-sm font-semibold text-black/55">
+          ← Tous les professeurs
+        </Link>
+        <p className="grid min-h-[40vh] place-items-center text-black/50">Chargement…</p>
+      </main>
+    );
+  }
+
+  return <AccountForm key={user.id} userId={userId} user={user} />;
+}
+
+function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
   const { signOut } = useClerk();
   const router = useRouter();
-  const [gender, setGender] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [birthDate, setBirthDate] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [baseline, setBaseline] = useState("");
-  const [loaded, setLoaded] = useState(false);
+  const meta = metaOf(user);
+  const initialValues = {
+    gender: textOf(meta.gender),
+    firstName: user.firstName || "",
+    lastName: user.lastName || "",
+    birthDate: textOf(meta.birthDate),
+    phone: textOf(meta.phone) || user.primaryPhoneNumber?.phoneNumber || "",
+    address: textOf(meta.address),
+    emailNotifications: true,
+  };
+
+  const [gender, setGender] = useState(initialValues.gender);
+  const [firstName, setFirstName] = useState(initialValues.firstName);
+  const [lastName, setLastName] = useState(initialValues.lastName);
+  const [birthDate, setBirthDate] = useState(initialValues.birthDate);
+  const [phone, setPhone] = useState(initialValues.phone);
+  const [address, setAddress] = useState(initialValues.address);
+  const [emailNotifications, setEmailNotifications] = useState(initialValues.emailNotifications);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(user.imageUrl || null);
+  const [baseline, setBaseline] = useState(() => JSON.stringify(initialValues));
   const [saving, setSaving] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
@@ -48,49 +81,39 @@ export default function AccountSettings() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const email = user?.primaryEmailAddress?.emailAddress || "";
-  const phoneVerified = user?.primaryPhoneNumber?.verification?.status === "verified";
+  const email = user.primaryEmailAddress?.emailAddress || "";
+  const phoneVerified = user.primaryPhoneNumber?.verification?.status === "verified";
 
   useEffect(() => {
-    if (!ready || !userId || !user) return;
     let cancel = false;
-    const current = user;
-    const meta = metaOf(current);
-    const initial = {
-      gender: textOf(meta.gender),
-      firstName: current.firstName || "",
-      lastName: current.lastName || "",
-      birthDate: textOf(meta.birthDate),
-      phone: textOf(meta.phone) || current.primaryPhoneNumber?.phoneNumber || "",
-      address: textOf(meta.address),
+    const baseSnapshot = {
+      gender: textOf(metaOf(user).gender),
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      birthDate: textOf(metaOf(user).birthDate),
+      phone: textOf(metaOf(user).phone) || user.primaryPhoneNumber?.phoneNumber || "",
+      address: textOf(metaOf(user).address),
     };
-    setGender(initial.gender);
-    setFirstName(initial.firstName);
-    setLastName(initial.lastName);
-    setBirthDate(initial.birthDate);
-    setPhone(initial.phone);
-    setAddress(initial.address);
-    setPhotoUrl(current.imageUrl || null);
-    setBaseline(JSON.stringify(initial));
-    setLoaded(true);
 
     Promise.all([
       fetchAccountIdentity(userId).catch(() => null),
       fetchMyTutorProfile(userId).catch(() => null),
+      fetchEmailNotifications(userId).catch(() => true),
     ])
-      .then(([identity, tutor]) => {
+      .then(([identity, tutor, notifyEmail]) => {
         if (cancel) return;
         const fromTutor = splitName(tutor && tutor.name !== "Tuteur" ? tutor.name : "");
         const next = {
-          gender: initial.gender,
-          firstName: initial.firstName || identity?.firstName || fromTutor.first,
-          lastName: initial.lastName || identity?.lastName || fromTutor.last,
-          birthDate: initial.birthDate,
-          phone: initial.phone,
+          gender: baseSnapshot.gender,
+          firstName: baseSnapshot.firstName || identity?.firstName || fromTutor.first,
+          lastName: baseSnapshot.lastName || identity?.lastName || fromTutor.last,
+          birthDate: baseSnapshot.birthDate,
+          phone: baseSnapshot.phone,
           address:
-            initial.address ||
+            baseSnapshot.address ||
             joinPlace(identity?.postalCode, identity?.city) ||
             joinPlace(tutor?.postalCode, tutor?.city),
+          emailNotifications: notifyEmail,
         };
         setGender(next.gender);
         setFirstName(next.firstName);
@@ -98,10 +121,11 @@ export default function AccountSettings() {
         setBirthDate(next.birthDate);
         setPhone(next.phone);
         setAddress(next.address);
-        setPhotoUrl(current.imageUrl || tutor?.avatarUrl || null);
+        setEmailNotifications(next.emailNotifications);
+        setPhotoUrl(user.imageUrl || tutor?.avatarUrl || null);
         setBaseline(JSON.stringify(next));
-        if (!current.firstName && next.firstName) {
-          current.update({ firstName: next.firstName, lastName: next.lastName }).catch(() => undefined);
+        if (!user.firstName && next.firstName) {
+          user.update({ firstName: next.firstName, lastName: next.lastName }).catch(() => undefined);
         }
       })
       .catch((err) => {
@@ -111,18 +135,25 @@ export default function AccountSettings() {
     return () => {
       cancel = true;
     };
-    // The Clerk user id is stable. Depending on the user object restarts the form while it is open.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, userId, user?.id]);
+  }, [userId, user.id]);
 
-  const current = JSON.stringify({ gender, firstName, lastName, birthDate, phone, address });
-  const dirty = loaded && current !== baseline;
+  const current = JSON.stringify({
+    gender,
+    firstName,
+    lastName,
+    birthDate,
+    phone,
+    address,
+    emailNotifications,
+  });
+  const dirty = current !== baseline;
 
   function pickPhoto(file: File | undefined) {
     if (!file) return;
-    const message = photoFileError(file);
-    if (message) {
-      setError(message);
+    const fileError = photoFileError(file);
+    if (fileError) {
+      setError(fileError);
       setMessage("");
       return;
     }
@@ -132,7 +163,6 @@ export default function AccountSettings() {
   }
 
   async function onPhoto(file: File) {
-    if (!user || !userId) return;
     setPhotoBusy(true);
     setError("");
     setMessage("");
@@ -150,7 +180,7 @@ export default function AccountSettings() {
   }
 
   async function onSave() {
-    if (!user || !userId || !dirty || saving) return;
+    if (!dirty || saving) return;
     setSaving(true);
     setError("");
     setMessage("");
@@ -176,6 +206,14 @@ export default function AccountSettings() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
       });
+      await saveEmailNotifications(userId, emailNotifications);
+      if (email) {
+        await syncUserEmail(
+          userId,
+          email,
+          [firstName.trim(), lastName.trim()].filter(Boolean).join(" ") || null
+        );
+      }
       setBaseline(current);
       setMessage("Tes informations sont à jour.");
     } catch (err) {
@@ -186,7 +224,7 @@ export default function AccountSettings() {
   }
 
   async function onPassword() {
-    if (!user || passwordBusy) return;
+    if (passwordBusy) return;
     if (!currentPassword) {
       setError("Indique ton mot de passe actuel.");
       return;
@@ -221,27 +259,17 @@ export default function AccountSettings() {
   }
 
   async function onDelete() {
-    if (!user || deleting) return;
+    if (deleting) return;
     setDeleting(true);
     setError("");
     try {
+      await deleteAccountData(userId);
       await user.delete();
       router.push("/");
     } catch (err) {
       setError(clerkText(err, "Impossible de supprimer le compte."));
       setDeleting(false);
     }
-  }
-
-  if (!ready || !loaded) {
-    return (
-      <main className="mx-auto max-w-xl px-4 py-8 sm:px-6">
-        <Link href="/" className="text-sm font-semibold text-black/55">
-          ← Tous les professeurs
-        </Link>
-        <p className="grid min-h-[40vh] place-items-center text-black/50">Chargement…</p>
-      </main>
-    );
   }
 
   const shownName = firstName.trim() || "Mon compte";
@@ -306,17 +334,24 @@ export default function AccountSettings() {
           className={field}
         />
         <div className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-4">
-          <span aria-hidden="true">🇧🇪</span>
           <input
             value={phone}
             onChange={(event) => setPhone(event.target.value)}
-            placeholder="Téléphone"
+            placeholder="Téléphone (ex. +32…)"
             autoComplete="tel"
             inputMode="tel"
             className="h-12 min-w-0 flex-1 bg-transparent text-sm outline-none"
           />
           {phoneVerified ? <span className="text-sm font-extrabold text-[#0d9f7a]">Vérifié</span> : null}
         </div>
+        <p className="px-1 text-xs leading-5 text-black/50">
+          Ce numéro reste privé. Pour afficher un téléphone aux membres connectés sur ta fiche
+          professeur, ajoute-le dans{" "}
+          <Link href="/annonce" className="font-semibold text-[#087a5c] underline">
+            Mon annonce
+          </Link>
+          .
+        </p>
         <textarea
           value={address}
           onChange={(event) => setAddress(event.target.value)}
@@ -329,6 +364,20 @@ export default function AccountSettings() {
 
       <Section title="Paramètres du compte">
         <p className={`${field} text-black/70`}>{email || "E-mail"}</p>
+        <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm">
+          <input
+            type="checkbox"
+            checked={emailNotifications}
+            onChange={(event) => setEmailNotifications(event.target.checked)}
+            className="mt-0.5 accent-[#0d9f7a]"
+          />
+          <span>
+            <span className="block font-semibold text-[#1c1c1c]">Notifications par e-mail</span>
+            <span className="mt-0.5 block text-xs text-black/55">
+              Recevoir un e-mail lors d’une nouvelle demande ou d’un nouveau message.
+            </span>
+          </span>
+        </label>
         <button
           type="button"
           onClick={() => setPasswordOpen((open) => !open)}

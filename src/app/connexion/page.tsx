@@ -7,7 +7,8 @@ import { Suspense } from "react";
 function SignInForm() {
   const params = useSearchParams();
   const next = params.get("next");
-  const dest = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+  const dest =
+    next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : "/";
   return (
     <SignIn
       routing="hash"

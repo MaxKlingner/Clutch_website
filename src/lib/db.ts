@@ -21,7 +21,7 @@ export const LEVELS = [
 export const FORMATS = ["Face à face", "À distance"] as const;
 
 const PROFILE_COLUMNS =
-  "id, clerk_id, full_name, subject, hourly_rate, rating, review_count, lessons_given, role, bio, about_tutor, about_course, specialties, study_year, avatar_url, city, postal_code, latitude, longitude, teaching_formats, taught_levels, diploma_title, diploma_school, diploma_year, response_minutes, created_at";
+  "id, clerk_id, full_name, subject, hourly_rate, rating, review_count, lessons_given, role, bio, about_tutor, about_course, specialties, study_year, avatar_url, city, postal_code, latitude, longitude, teaching_formats, taught_levels, diploma_title, diploma_school, diploma_year, response_minutes, has_contact_phone, created_at";
 
 export type Tutor = {
   id: string;
@@ -47,6 +47,7 @@ export type Tutor = {
   diplomaSchool: string;
   diplomaYear: number | null;
   responseMinutes: number | null;
+  hasContactPhone: boolean;
 };
 
 export type Review = {
@@ -65,9 +66,19 @@ export type Match = {
   tutorId: string;
   status: string;
   createdAt: string;
+  lessonGivenAt: string | null;
+  lessonGivenBy: string | null;
+  parentLastReadAt: string | null;
+  tutorLastReadAt: string | null;
+  lastMessageAt: string | null;
+  lastMessageContent: string | null;
+  lastMessageSenderId: string | null;
   tutor: Tutor | null;
   parentName: string;
 };
+
+const MATCH_COLUMNS = `id, parent_id, tutor_id, status, created_at, lesson_given_at, lesson_given_by, parent_last_read_at, tutor_last_read_at, tutor:profiles (${PROFILE_COLUMNS})`;
+const MESSAGE_COLUMNS = "id, match_id, sender_id, sender_role, content, created_at, message_type";
 
 export type ChatMessage = {
   id: string;
@@ -77,22 +88,35 @@ export type ChatMessage = {
   content: string;
   createdAt: string;
   messageType: string;
-  hours: number | null;
-  amount: number | null;
-  hourlyRate: number | null;
-  paymentStatus: string | null;
 };
 
+const useClerkJwt = process.env.NEXT_PUBLIC_CLERK_SUPABASE_AUTH !== "false";
 let client: SupabaseClient | null = null;
+let tokenProvider: (() => Promise<string | null>) | null = null;
+
+export function setSupabaseTokenProvider(provider: (() => Promise<string | null>) | null) {
+  tokenProvider = provider;
+}
 
 export function getSupabase() {
-  if (client) return client;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
   if (!url || !key) {
     throw new Error("Supabase n’est pas configuré.");
   }
-  client = createClient(url, key);
+  if (typeof window === "undefined") {
+    return createClient(url, key);
+  }
+  if (client) return client;
+  client = createClient(
+    url,
+    key,
+    useClerkJwt
+      ? {
+          accessToken: async () => (tokenProvider ? await tokenProvider() : null),
+        }
+      : undefined
+  );
   return client;
 }
 
@@ -154,6 +178,7 @@ function mapTutor(row: Record<string, unknown> | null): Tutor | null {
       row.response_minutes == null || !Number.isFinite(Number(row.response_minutes))
         ? null
         : Number(row.response_minutes),
+    hasContactPhone: Boolean(row.has_contact_phone),
   };
 }
 
@@ -167,14 +192,14 @@ function mapMessage(row: Record<string, unknown> | null): ChatMessage | null {
     content: String(row.content ?? ""),
     createdAt: String(row.created_at ?? ""),
     messageType: String(row.message_type || "text"),
-    hours: row.hours != null ? Number(row.hours) : null,
-    amount: row.amount != null ? Number(row.amount) : null,
-    hourlyRate: row.hourly_rate != null ? Number(row.hourly_rate) : null,
-    paymentStatus: row.payment_status ? String(row.payment_status) : null,
   };
 }
 
-function mapMatch(row: Record<string, unknown>): Match {
+function mapMatch(
+  row: Record<string, unknown>,
+  parentName = "Élève",
+  latest?: { createdAt: string; content: string; senderId: string }
+): Match {
   const tutor = mapTutor((row.tutor as Record<string, unknown>) ?? null);
   return {
     id: String(row.id),
@@ -182,8 +207,15 @@ function mapMatch(row: Record<string, unknown>): Match {
     tutorId: String(row.tutor_id),
     status: String(row.status ?? "pending"),
     createdAt: String(row.created_at ?? ""),
+    lessonGivenAt: row.lesson_given_at ? String(row.lesson_given_at) : null,
+    lessonGivenBy: row.lesson_given_by ? String(row.lesson_given_by) : null,
+    parentLastReadAt: row.parent_last_read_at ? String(row.parent_last_read_at) : null,
+    tutorLastReadAt: row.tutor_last_read_at ? String(row.tutor_last_read_at) : null,
+    lastMessageAt: latest?.createdAt ?? null,
+    lastMessageContent: latest?.content ?? null,
+    lastMessageSenderId: latest?.senderId ?? null,
     tutor,
-    parentName: "Parent",
+    parentName,
   };
 }
 
@@ -207,6 +239,25 @@ export async function fetchTutor(id: string) {
   const { data, error } = await db.from("profiles").select(PROFILE_COLUMNS).eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
   return mapTutor(data);
+}
+
+export async function fetchTutorContactPhone(tutorId: string): Promise<string | null> {
+  const db = getSupabase();
+  if (useClerkJwt) {
+    const { data, error } = await db.rpc("get_tutor_contact_phone", { target_tutor_id: tutorId });
+    if (!error) {
+      const phone = data ? String(data).trim() : "";
+      return phone || null;
+    }
+  }
+  const { data, error } = await db
+    .from("profiles")
+    .select("contact_phone")
+    .eq("id", tutorId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  const phone = data?.contact_phone ? String(data.contact_phone).trim() : "";
+  return phone || null;
 }
 
 export async function fetchMyTutorProfile(clerkId: string) {
@@ -260,6 +311,31 @@ export function exchangeReady(messages: { senderRole: string }[]) {
   return roles.has("parent") && roles.has("tutor");
 }
 
+export async function markLessonGiven(matchId: string, byClerkId: string) {
+  const match = await fetchMatch(matchId);
+  if (!match) throw new Error("Conversation introuvable.");
+  if (match.parentId !== byClerkId || match.tutor?.clerkId === byClerkId) {
+    throw new Error("Seul l’élève ou le parent peut confirmer que le cours a été donné.");
+  }
+  if (match.lessonGivenAt) return match;
+
+  const db = getSupabase();
+  const now = new Date().toISOString();
+  const { data, error } = await db
+    .from("matches")
+    .update({ lesson_given_at: now, lesson_given_by: byClerkId })
+    .eq("id", matchId)
+    .is("lesson_given_at", null)
+    .select(MATCH_COLUMNS)
+    .maybeSingle();
+  if (error) throw new Error(error.message || "Impossible de confirmer le cours.");
+  if (data) return mapMatch(data as Record<string, unknown>, match.parentName);
+
+  const refreshed = await fetchMatch(matchId);
+  if (!refreshed) throw new Error("Conversation introuvable.");
+  return refreshed;
+}
+
 export async function submitReview(input: {
   matchId: string;
   reviewerId: string;
@@ -271,9 +347,12 @@ export async function submitReview(input: {
   if (!Number.isInteger(stars) || stars < 1 || stars > 5) {
     throw new Error("La note doit être un entier entre 1 et 5.");
   }
-  const messages = await fetchMessages(input.matchId);
-  if (!exchangeReady(messages)) {
-    throw new Error("Un avis n’est possible qu’après un échange.");
+  const match = await fetchMatch(input.matchId);
+  if (!match?.lessonGivenAt) {
+    throw new Error("Un avis n’est possible qu’après un cours.");
+  }
+  if (match.parentId !== input.reviewerId || match.tutor?.clerkId === input.reviewerId) {
+    throw new Error("Seul l’élève ou le parent peut laisser un avis.");
   }
   const db = getSupabase();
   const { error } = await db.from("reviews").insert({
@@ -286,12 +365,13 @@ export async function submitReview(input: {
   if (error) {
     const text = error.message || "";
     if (text.toLowerCase().includes("duplicate") || text.toLowerCase().includes("unique")) {
-      throw new Error("Tu as déjà laissé un avis pour cet échange.");
+      throw new Error("Tu as déjà laissé un avis pour ce cours.");
     }
-    if (text.toLowerCase().includes("échange")) throw new Error("Un avis n’est possible qu’après un échange.");
+    if (text.toLowerCase().includes("cours") || text.toLowerCase().includes("échange")) {
+      throw new Error("Un avis n’est possible qu’après un cours.");
+    }
     throw new Error(text || "Impossible d’enregistrer l’avis.");
   }
-  await refreshTutorRating(input.tutorId);
 }
 
 export async function replyToReview(reviewId: string, clerkId: string, reply: string) {
@@ -322,29 +402,6 @@ export async function submitReport(input: {
     reason: input.reason.trim(),
   });
   if (error) throw new Error(error.message || "Impossible d’envoyer le signalement.");
-}
-
-async function refreshTutorRating(tutorId: string) {
-  const db = getSupabase();
-  const { data, error } = await db.from("reviews").select("rating").eq("tutor_id", tutorId);
-  if (error) throw new Error(error.message);
-  const list = data ?? [];
-  const count = list.length;
-  const average =
-    count === 0
-      ? 0
-      : Math.round((list.reduce((sum, row) => sum + Number(row.rating || 0), 0) / count) * 10) / 10;
-  const { error: updateError } = await db
-    .from("profiles")
-    .update({ rating: average, review_count: count })
-    .eq("id", tutorId);
-  if (updateError) throw new Error(updateError.message);
-}
-
-function noteTutorReply(matchId: string) {
-  getSupabase()
-    .rpc("record_tutor_reply", { target_match: matchId })
-    .then(() => undefined, () => undefined);
 }
 
 const roleKey = (clerkId: string) => `clutch_user_role_${clerkId}`;
@@ -486,10 +543,12 @@ export async function saveSignupProfile(input: {
   firstName: string;
   lastName: string;
   city?: string;
+  email?: string | null;
 }) {
   const fullName = [input.firstName, input.lastName].filter(Boolean).join(" ").trim();
   await setActiveRole(input.clerkId, input.role, fullName);
   const db = getSupabase();
+  const cleanEmail = input.email?.trim() || null;
   const { error } = await db
     .from("user_profiles")
     .update({
@@ -497,8 +556,84 @@ export async function saveSignupProfile(input: {
       last_name: input.lastName || null,
       city: input.city || null,
       full_name: fullName || null,
+      ...(cleanEmail ? { email: cleanEmail } : {}),
     })
     .eq("clerk_id", input.clerkId);
+  if (error) throw new Error(error.message);
+  if (cleanEmail) {
+    await db
+      .from("email_consents")
+      .upsert({ clerk_id: input.clerkId, email: cleanEmail }, { onConflict: "clerk_id" });
+  }
+}
+
+export async function syncUserEmail(
+  clerkId: string,
+  email: string,
+  fullName?: string | null
+) {
+  const clean = email.trim();
+  if (!clean) return;
+  const db = getSupabase();
+  const now = new Date().toISOString();
+  const { data: existing } = await db
+    .from("user_profiles")
+    .select("clerk_id, email, full_name")
+    .eq("clerk_id", clerkId)
+    .maybeSingle();
+
+  if (existing && (existing.email !== clean || (!existing.full_name && fullName))) {
+    await db
+      .from("user_profiles")
+      .update({
+        email: clean,
+        full_name: existing.full_name || fullName || null,
+        updated_at: now,
+      })
+      .eq("clerk_id", clerkId);
+  }
+
+  await db
+    .from("email_consents")
+    .upsert(
+      { clerk_id: clerkId, email: clean, updated_at: now },
+      { onConflict: "clerk_id" }
+    );
+}
+
+export async function fetchEmailNotifications(clerkId: string): Promise<boolean> {
+  const db = getSupabase();
+  const { data, error } = await db
+    .from("user_profiles")
+    .select("email_notifications")
+    .eq("clerk_id", clerkId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data?.email_notifications !== false;
+}
+
+export async function setEmailNotifications(clerkId: string, enabled: boolean) {
+  const db = getSupabase();
+  const { data: existing } = await db
+    .from("user_profiles")
+    .select("clerk_id")
+    .eq("clerk_id", clerkId)
+    .maybeSingle();
+  if (!existing) {
+    const { error } = await db.from("user_profiles").insert({
+      clerk_id: clerkId,
+      role: ROLES.PARENT,
+      active_role: ROLES.PARENT,
+      email_notifications: enabled,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) throw new Error(error.message);
+    return;
+  }
+  const { error } = await db
+    .from("user_profiles")
+    .update({ email_notifications: enabled, updated_at: new Date().toISOString() })
+    .eq("clerk_id", clerkId);
   if (error) throw new Error(error.message);
 }
 
@@ -542,26 +677,133 @@ export async function toggleFavorite(userId: string, tutorId: string, on: boolea
   if (error) throw new Error(error.message);
 }
 
+async function resolveParentNames(parentIds: string[], matchIds: string[] = []) {
+  const unique = [...new Set(parentIds.filter(Boolean))];
+  const names = new Map<string, string>();
+  if (!unique.length) return names;
+  try {
+    const db = getSupabase();
+    if (useClerkJwt && matchIds.length) {
+      const { data, error } = await db.rpc("get_match_parent_names", {
+        target_match_ids: matchIds,
+      });
+      if (!error && Array.isArray(data)) {
+        for (const row of data as { parent_id?: string; first_name?: string }[]) {
+          const parentId = String(row.parent_id || "").trim();
+          const label = String(row.first_name || "").trim();
+          if (parentId && label) names.set(parentId, label);
+        }
+        return names;
+      }
+    }
+    const { data } = await db
+      .from("user_profiles")
+      .select("clerk_id, first_name, full_name")
+      .in("clerk_id", unique);
+    for (const row of data ?? []) {
+      const first = String(row.first_name || "").trim();
+      const full = String(row.full_name || "").trim();
+      const label = first || full.split(/\s+/)[0] || "";
+      if (label) names.set(String(row.clerk_id), label);
+    }
+  } catch {
+    // Graceful fallback if user_profiles is unavailable
+  }
+  return names;
+}
+
 async function matchesWithMessages(rows: Record<string, unknown>[]) {
   if (!rows.length) return [];
   const db = getSupabase();
   const { data, error } = await db
     .from("messages")
-    .select("match_id")
+    .select("match_id, sender_id, content, created_at, message_type")
     .in(
       "match_id",
       rows.map((row) => row.id)
     );
   if (error) throw new Error(error.message);
-  const ids = new Set((data ?? []).map((row) => String(row.match_id)));
-  return rows.filter((row) => ids.has(String(row.id))).map(mapMatch);
+  const latestByMatch = new Map<string, { createdAt: string; content: string; senderId: string }>();
+  for (const row of data ?? []) {
+    if (String(row.message_type || "text") === "payment_request") continue;
+    const id = String(row.match_id);
+    const createdAt = String(row.created_at ?? "");
+    const previous = latestByMatch.get(id);
+    if (!previous || createdAt > previous.createdAt) {
+      latestByMatch.set(id, {
+        createdAt,
+        content: String(row.content ?? ""),
+        senderId: String(row.sender_id ?? ""),
+      });
+    }
+  }
+  const activeRows = rows.filter((row) => latestByMatch.has(String(row.id)));
+  const parentNames = await resolveParentNames(
+    activeRows.map((row) => String(row.parent_id)),
+    activeRows.map((row) => String(row.id))
+  );
+  return activeRows
+    .map((row) =>
+      mapMatch(
+        row,
+        parentNames.get(String(row.parent_id)) || "Élève",
+        latestByMatch.get(String(row.id))
+      )
+    )
+    .sort((left, right) => {
+      const a = left.lastMessageAt || left.createdAt;
+      const b = right.lastMessageAt || right.createdAt;
+      return b.localeCompare(a);
+    });
+}
+
+export function isMatchUnread(
+  match: Match,
+  clerkId: string,
+  myTutorProfileId: string | null
+) {
+  if (!match.lastMessageAt || !match.lastMessageSenderId) return false;
+  if (match.lastMessageSenderId === clerkId) return false;
+  const asTutor = Boolean(
+    (myTutorProfileId && match.tutorId === myTutorProfileId) ||
+      (match.tutor?.clerkId === clerkId && match.parentId !== clerkId)
+  );
+  const lastReadAt = asTutor ? match.tutorLastReadAt : match.parentLastReadAt;
+  if (!lastReadAt) return true;
+  return match.lastMessageAt > lastReadAt;
+}
+
+export async function fetchUnreadCount(clerkId: string) {
+  const { matches, myTutorProfileId } = await fetchUserMatches(clerkId);
+  return matches.filter((match) => isMatchUnread(match, clerkId, myTutorProfileId)).length;
+}
+
+export async function markMatchRead(matchId: string, asTutor: boolean) {
+  const db = getSupabase();
+  const now = new Date().toISOString();
+  const patch = asTutor ? { tutor_last_read_at: now } : { parent_last_read_at: now };
+  const { error } = await db.from("matches").update(patch).eq("id", matchId);
+  if (!error && typeof window !== "undefined") {
+    window.dispatchEvent(new Event("clutch-messages"));
+  }
+}
+
+export function subscribeIncomingMessages(onEvent: () => void) {
+  const db = getSupabase();
+  const channel = db
+    .channel("web-unread-messages")
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, onEvent)
+    .subscribe();
+  return () => {
+    db.removeChannel(channel);
+  };
 }
 
 export async function fetchParentMatches(parentId: string) {
   const db = getSupabase();
   const { data, error } = await db
     .from("matches")
-    .select(`id, parent_id, tutor_id, status, created_at, tutor:profiles (${PROFILE_COLUMNS})`)
+    .select(`${MATCH_COLUMNS}`)
     .eq("parent_id", parentId)
     .in("status", ["pending", "accepted"])
     .order("created_at", { ascending: false });
@@ -575,7 +817,7 @@ export async function fetchTutorMatches(clerkId: string) {
   const db = getSupabase();
   const { data, error } = await db
     .from("matches")
-    .select(`id, parent_id, tutor_id, status, created_at, tutor:profiles (${PROFILE_COLUMNS})`)
+    .select(`${MATCH_COLUMNS}`)
     .eq("tutor_id", profile.id)
     .in("status", ["pending", "accepted"])
     .order("created_at", { ascending: false });
@@ -583,11 +825,48 @@ export async function fetchTutorMatches(clerkId: string) {
   return matchesWithMessages((data ?? []) as Record<string, unknown>[]);
 }
 
+export async function fetchUserMatches(clerkId: string) {
+  const db = getSupabase();
+  const [profile, parentResult] = await Promise.all([
+    fetchMyTutorProfile(clerkId),
+    db
+      .from("matches")
+      .select(`${MATCH_COLUMNS}`)
+      .eq("parent_id", clerkId)
+      .in("status", ["pending", "accepted"])
+      .order("created_at", { ascending: false }),
+  ]);
+  if (parentResult.error) throw new Error(parentResult.error.message);
+
+  let tutorRows: Record<string, unknown>[] = [];
+  if (profile) {
+    const tutorResult = await db
+      .from("matches")
+      .select(`${MATCH_COLUMNS}`)
+      .eq("tutor_id", profile.id)
+      .in("status", ["pending", "accepted"])
+      .order("created_at", { ascending: false });
+    if (tutorResult.error) throw new Error(tutorResult.error.message);
+    tutorRows = (tutorResult.data ?? []) as Record<string, unknown>[];
+  }
+
+  const combined = new Map<string, Record<string, unknown>>();
+  for (const row of (parentResult.data ?? []) as Record<string, unknown>[]) {
+    combined.set(String(row.id), row);
+  }
+  for (const row of tutorRows) {
+    combined.set(String(row.id), row);
+  }
+
+  const matches = await matchesWithMessages([...combined.values()]);
+  return { matches, myTutorProfileId: profile?.id ?? null };
+}
+
 export async function findTutorMatch(parentId: string, tutorId: string) {
   const db = getSupabase();
   const { data, error } = await db
     .from("matches")
-    .select(`id, parent_id, tutor_id, status, created_at, tutor:profiles (${PROFILE_COLUMNS})`)
+    .select(`${MATCH_COLUMNS}`)
     .eq("parent_id", parentId)
     .eq("tutor_id", tutorId)
     .maybeSingle();
@@ -599,18 +878,21 @@ export async function findTutorMatch(parentId: string, tutorId: string) {
     .eq("match_id", data.id);
   if (countError) throw new Error(countError.message);
   if (!count) return null;
-  return mapMatch(data as Record<string, unknown>);
+  const parentNames = await resolveParentNames([String(data.parent_id)], [String(data.id)]);
+  return mapMatch(data as Record<string, unknown>, parentNames.get(String(data.parent_id)) || "Élève");
 }
 
 export async function fetchMatch(matchId: string) {
   const db = getSupabase();
   const { data, error } = await db
     .from("matches")
-    .select(`id, parent_id, tutor_id, status, created_at, tutor:profiles (${PROFILE_COLUMNS})`)
+    .select(`${MATCH_COLUMNS}`)
     .eq("id", matchId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  return data ? mapMatch(data as Record<string, unknown>) : null;
+  if (!data) return null;
+  const parentNames = await resolveParentNames([String(data.parent_id)], [String(data.id)]);
+  return mapMatch(data as Record<string, unknown>, parentNames.get(String(data.parent_id)) || "Élève");
 }
 
 export async function contactedTutorIds(parentId: string) {
@@ -619,10 +901,14 @@ export async function contactedTutorIds(parentId: string) {
 }
 
 async function ensureMatch(parentId: string, tutorId: string) {
+  const target = await fetchTutor(tutorId);
+  if (target?.clerkId === parentId) {
+    throw new Error("Tu ne peux pas t’envoyer un message à toi-même.");
+  }
   const db = getSupabase();
   const { data: existing, error: existingError } = await db
     .from("matches")
-    .select(`id, parent_id, tutor_id, status, created_at, tutor:profiles (${PROFILE_COLUMNS})`)
+    .select(`${MATCH_COLUMNS}`)
     .eq("parent_id", parentId)
     .eq("tutor_id", tutorId)
     .maybeSingle();
@@ -633,17 +919,22 @@ async function ensureMatch(parentId: string, tutorId: string) {
   if (existing) {
     const { data, error } = await db
       .from("matches")
-      .update({ status: "pending" })
+      .update({ status: "pending", parent_last_read_at: new Date().toISOString() })
       .eq("id", existing.id)
-      .select(`id, parent_id, tutor_id, status, created_at, tutor:profiles (${PROFILE_COLUMNS})`)
+      .select(`${MATCH_COLUMNS}`)
       .single();
     if (error) throw new Error(error.message);
     return mapMatch(data as Record<string, unknown>);
   }
   const { data, error } = await db
     .from("matches")
-    .insert({ parent_id: parentId, tutor_id: tutorId, status: "pending" })
-    .select(`id, parent_id, tutor_id, status, created_at, tutor:profiles (${PROFILE_COLUMNS})`)
+    .insert({
+      parent_id: parentId,
+      tutor_id: tutorId,
+      status: "pending",
+      parent_last_read_at: new Date().toISOString(),
+    })
+    .select(`${MATCH_COLUMNS}`)
     .single();
   if (error) throw new Error(error.message);
   return mapMatch(data as Record<string, unknown>);
@@ -653,15 +944,13 @@ export async function fetchMessages(matchId: string) {
   const db = getSupabase();
   const { data, error } = await db
     .from("messages")
-    .select(
-      "id, match_id, sender_id, sender_role, content, created_at, message_type, hours, amount, hourly_rate, payment_status"
-    )
+    .select(MESSAGE_COLUMNS)
     .eq("match_id", matchId)
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? [])
     .map((row) => mapMessage(row))
-    .filter((row): row is ChatMessage => Boolean(row));
+    .filter((row): row is ChatMessage => row !== null && row.messageType !== "payment_request");
 }
 
 export function subscribeMessages(
@@ -676,7 +965,7 @@ export function subscribeMessages(
       { event: "*", schema: "public", table: "messages", filter: `match_id=eq.${matchId}` },
       (payload) => {
         const message = mapMessage(payload.new as Record<string, unknown>);
-        if (message) onChange(message);
+        if (message && message.messageType !== "payment_request") onChange(message);
       }
     )
     .subscribe();
@@ -701,12 +990,9 @@ export async function sendText(input: {
       content: input.content.trim(),
       message_type: "text",
     })
-    .select(
-      "id, match_id, sender_id, sender_role, content, created_at, message_type, hours, amount, hourly_rate, payment_status"
-    )
+    .select(MESSAGE_COLUMNS)
     .single();
   if (error) throw new Error(error.message);
-  if (input.senderRole === "tutor") noteTutorReply(input.matchId);
   return mapMessage(data);
 }
 
@@ -737,101 +1023,6 @@ export async function declineMatch(matchId: string) {
   if (error) throw new Error(error.message);
 }
 
-export async function sendPaymentRequest(input: {
-  matchId: string;
-  senderId: string;
-  hours: number;
-  hourlyRate: number;
-}) {
-  const amount = Math.round(input.hours * input.hourlyRate * 100) / 100;
-  const db = getSupabase();
-  const { error } = await db.from("messages").insert({
-    match_id: input.matchId,
-    sender_id: input.senderId,
-    sender_role: "tutor",
-    content: `Demande de paiement : ${input.hours}h de cours — ${amount.toFixed(2)} €`,
-    message_type: "payment_request",
-    hours: input.hours,
-    amount,
-    hourly_rate: input.hourlyRate,
-    payment_status: "pending",
-  });
-  if (error) throw new Error(error.message);
-  noteTutorReply(input.matchId);
-}
-
-export async function ensureWallet(clerkId: string) {
-  const db = getSupabase();
-  const { data, error } = await db
-    .from("wallets")
-    .select("balance")
-    .eq("clerk_id", clerkId)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (data) return Number(data.balance) || 0;
-  const { data: created, error: insertError } = await db
-    .from("wallets")
-    .insert({ clerk_id: clerkId, balance: 50 })
-    .select("balance")
-    .single();
-  if (insertError) throw new Error(insertError.message);
-  return Number(created.balance) || 0;
-}
-
-export async function payRequest(messageId: string, parentClerkId: string, tutorClerkId: string) {
-  const db = getSupabase();
-  const { data: message, error } = await db
-    .from("messages")
-    .select("id, match_id, message_type, hours, amount, payment_status")
-    .eq("id", messageId)
-    .single();
-  if (error || !message) throw new Error(error?.message || "Demande introuvable.");
-  if (message.payment_status === "paid") return;
-  const amount = Number(message.amount);
-  const parentBalance = await ensureWallet(parentClerkId);
-  if (parentBalance < amount) throw new Error("Solde insuffisant. Recharge ton portefeuille.");
-  await ensureWallet(tutorClerkId);
-  const { data: tutorWallet, error: tutorError } = await db
-    .from("wallets")
-    .select("balance")
-    .eq("clerk_id", tutorClerkId)
-    .single();
-  if (tutorError) throw new Error(tutorError.message);
-  const now = new Date().toISOString();
-  const parentNext = Math.round((parentBalance - amount) * 100) / 100;
-  const tutorNext = Math.round((Number(tutorWallet.balance) + amount) * 100) / 100;
-  const { error: debitError } = await db
-    .from("wallets")
-    .update({ balance: parentNext, updated_at: now })
-    .eq("clerk_id", parentClerkId);
-  if (debitError) throw new Error(debitError.message);
-  const { error: creditError } = await db
-    .from("wallets")
-    .update({ balance: tutorNext, updated_at: now })
-    .eq("clerk_id", tutorClerkId);
-  if (creditError) throw new Error(creditError.message);
-  const { error: statusError } = await db
-    .from("messages")
-    .update({
-      payment_status: "paid",
-      content: `Payé ✓ — ${message.hours}h de cours — ${amount.toFixed(2)} €`,
-    })
-    .eq("id", messageId);
-  if (statusError) throw new Error(statusError.message);
-  await db.from("payment_transactions").upsert(
-    {
-      message_id: messageId,
-      match_id: message.match_id,
-      parent_clerk_id: parentClerkId,
-      tutor_clerk_id: tutorClerkId,
-      amount,
-      status: "completed",
-      is_frozen: false,
-    },
-    { onConflict: "message_id" }
-  );
-}
-
 export async function saveAnnouncement(
   clerkId: string,
   input: {
@@ -850,6 +1041,7 @@ export async function saveAnnouncement(
     diplomaTitle?: string;
     diplomaSchool?: string;
     diplomaYear?: number | null;
+    contactPhone?: string | null;
     avatarUrl?: string | null;
   }
 ) {
@@ -872,6 +1064,7 @@ export async function saveAnnouncement(
     diploma_title: input.diplomaTitle?.trim() || null,
     diploma_school: input.diplomaSchool?.trim() || null,
     diploma_year: input.diplomaYear ?? null,
+    contact_phone: input.contactPhone?.trim() || null,
     role: "tutor",
     ...(input.avatarUrl ? { avatar_url: input.avatarUrl } : {}),
   };
@@ -914,58 +1107,50 @@ export async function resetAnnouncement(clerkId: string) {
       teaching_formats: [],
       taught_levels: [],
       hourly_rate: 0,
+      contact_phone: null,
     })
     .eq("clerk_id", clerkId);
   if (error) throw new Error(error.message);
 }
 
-export async function startTopUp(clerkId: string, euros: number) {
-  const backend = process.env.NEXT_PUBLIC_STRIPE_BACKEND_URL?.replace(/\/$/, "");
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!backend || !anon) throw new Error("Le paiement n’est pas configuré.");
-  const origin = window.location.origin;
-  const response = await fetch(`${backend}/create-checkout-session`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: anon,
-      Authorization: `Bearer ${anon}`,
-    },
-    body: JSON.stringify({
-      amountCents: Math.round(euros * 100),
-      currency: "eur",
-      parentId: clerkId,
-      successUrl: `${origin}/portefeuille?session_id={CHECKOUT_SESSION_ID}&amount=${euros}`,
-      cancelUrl: `${origin}/portefeuille`,
-    }),
-  });
-  const payload = await response.json();
-  if (!response.ok || !payload?.url) {
-    throw new Error(payload?.error || "Impossible d’ouvrir le paiement.");
-  }
-  window.location.href = String(payload.url);
-}
-
-export async function confirmTopUp(clerkId: string, sessionId: string, euros: number) {
-  const backend = process.env.NEXT_PUBLIC_STRIPE_BACKEND_URL?.replace(/\/$/, "");
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!backend || !anon) return;
-  const response = await fetch(`${backend}/checkout-session/${encodeURIComponent(sessionId)}`, {
-    headers: { apikey: anon, Authorization: `Bearer ${anon}` },
-  });
-  const payload = await response.json();
-  const paid = payload?.payment_status === "paid" || payload?.status === "complete";
-  if (!paid) return;
-  const doneKey = `clutch_topup_${sessionId}`;
-  if (localStorage.getItem(doneKey)) return;
+export async function deleteAccountData(clerkId: string) {
   const db = getSupabase();
-  const balance = await ensureWallet(clerkId);
-  const next = Math.round((balance + euros) * 100) / 100;
-  const { error } = await db
-    .from("wallets")
-    .update({ balance: next, updated_at: new Date().toISOString() })
-    .eq("clerk_id", clerkId);
-  if (error) throw new Error(error.message);
-  await db.from("wallet_topups").insert({ clerk_id: clerkId, amount: euros });
-  localStorage.setItem(doneKey, "1");
+  await db.from("favorite_tutors").delete().eq("user_id", clerkId);
+  await db.from("email_consents").delete().eq("clerk_id", clerkId);
+  await db.from("user_profiles").delete().eq("clerk_id", clerkId);
+
+  const profile = await fetchMyTutorProfile(clerkId);
+  if (profile) {
+    const { error } = await db.from("profiles").delete().eq("id", profile.id);
+    if (error) {
+      await db
+        .from("profiles")
+        .update({
+          clerk_id: null,
+          full_name: "Compte supprimé",
+          subject: "Matière",
+          specialties: [],
+          bio: "",
+          about_tutor: "",
+          about_course: "",
+          teaching_formats: [],
+          taught_levels: [],
+          hourly_rate: 0,
+          avatar_url: null,
+          city: null,
+          postal_code: null,
+          latitude: null,
+          longitude: null,
+          diploma_title: null,
+          diploma_school: null,
+          diploma_year: null,
+          contact_phone: null,
+          expo_push_token: null,
+        })
+        .eq("id", profile.id);
+    }
+  }
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(roleKey(clerkId));
+  }
 }

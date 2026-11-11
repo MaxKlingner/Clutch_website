@@ -1,7 +1,7 @@
 export const REPORT_REASONS = [
   "Le profil est inexact",
   "Comportement déplacé",
-  "Coordonnées envoyées hors de Clutch",
+  "Contenu commercial ou spam",
   "Autre",
 ] as const;
 

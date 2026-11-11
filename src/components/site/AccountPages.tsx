@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import TutorCard from "@/components/site/TutorCard";
 import { useRequireUser } from "@/components/site/useRequireUser";
 import { fetchFavorites, toggleFavorite, type Tutor } from "@/lib/db";
+import { suggestLocations } from "@/lib/locations";
 import { formatBirthInput, isAdultBirthDate } from "@/lib/trust";
 
 const field =
@@ -76,11 +77,14 @@ export function Welcome() {
   const router = useRouter();
   const [role, setRole] = useState<"parent" | "tutor">("parent");
   const [city, setCity] = useState("");
+  const [cityOpen, setCityOpen] = useState(false);
   const [birthDate, setBirthDate] = useState("");
   const [singleAccount, setSingleAccount] = useState(false);
   const [error, setError] = useState("");
 
   if (!ready) return <Loading />;
+  const citySuggestions = cityOpen ? suggestLocations(city) : [];
+
   return (
     <main className="mx-auto flex max-w-md flex-col px-6 py-16">
       <form
@@ -110,6 +114,7 @@ export function Welcome() {
               firstName: user?.firstName || "",
               lastName: user?.lastName || "",
               city,
+              email: user.primaryEmailAddress?.emailAddress || null,
             });
             router.replace(role === "tutor" ? "/annonce" : "/");
           } catch (err) {
@@ -131,16 +136,43 @@ export function Welcome() {
                 role === item ? "bg-[#1c1c1c] text-white" : "bg-white"
               }`}
             >
-              {item === "parent" ? "Parent" : "Tuteur"}
+              {item === "parent" ? "Élève / Parent" : "Professeur"}
             </button>
           ))}
         </div>
-        <input
-          value={city}
-          onChange={(event) => setCity(event.target.value)}
-          placeholder="Ville"
-          className={`${field} mt-4`}
-        />
+        <div className="relative mt-4">
+          <input
+            value={city}
+            onChange={(event) => {
+              setCity(event.target.value);
+              setCityOpen(true);
+            }}
+            onFocus={() => setCityOpen(true)}
+            onBlur={() => setTimeout(() => setCityOpen(false), 150)}
+            placeholder="Ville ou commune"
+            autoComplete="off"
+            className={field}
+          />
+          {citySuggestions.length > 0 ? (
+            <div className="absolute top-[calc(100%+6px)] right-0 left-0 z-20 max-h-48 overflow-y-auto rounded-2xl bg-white py-1 shadow-[0_18px_50px_rgba(15,28,26,0.14)] ring-1 ring-black/5">
+              {citySuggestions.map((item) => (
+                <button
+                  key={`${item.postalCode}-${item.name}`}
+                  type="button"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => {
+                    setCity(item.name);
+                    setCityOpen(false);
+                  }}
+                  className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm hover:bg-[#f3f7f5]"
+                >
+                  <span className="font-semibold">{item.name}</span>
+                  <span className="text-black/45">{item.postalCode}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
         <input
           value={birthDate}
           onChange={(event) => setBirthDate(formatBirthInput(event.target.value))}

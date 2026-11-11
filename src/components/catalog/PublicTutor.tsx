@@ -10,6 +10,7 @@ import {
   fetchFavoriteIds,
   fetchReviews,
   fetchTutor,
+  fetchTutorContactPhone,
   findTutorMatch,
   toggleFavorite,
   type Review,
@@ -17,36 +18,80 @@ import {
 } from "@/lib/db";
 import { diplomaLine, responseLabel } from "@/lib/trust";
 
-export default function PublicTutor({ id }: { id: string }) {
+export default function PublicTutor({
+  id,
+  initialTutor,
+  initialReviews,
+}: {
+  id: string;
+  initialTutor?: Tutor | null;
+  initialReviews?: Review[];
+}) {
   const { isSignedIn, userId } = useAuth();
   const router = useRouter();
-  const [tutor, setTutor] = useState<Tutor | null>(null);
+  const [tutor, setTutor] = useState<Tutor | null>(initialTutor ?? null);
+  const [loaded, setLoaded] = useState(initialTutor !== undefined);
   const [saved, setSaved] = useState(false);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [contactPhone, setContactPhone] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<Review[]>(initialReviews ?? []);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let cancel = false;
     Promise.all([fetchTutor(id), fetchReviews(id)])
       .then(([profile, notes]) => {
+        if (cancel) return;
         setTutor(profile);
         setReviews(notes);
       })
-      .catch((err: Error) => setError(err.message));
-  }, [id]);
+      .catch((err: Error) => {
+        if (!cancel && initialTutor === undefined) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancel) setLoaded(true);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [id, initialTutor]);
 
   useEffect(() => {
     if (!userId) return;
+    let cancel = false;
     fetchFavoriteIds(userId)
-      .then((ids) => setSaved(ids.has(id)))
+      .then((ids) => {
+        if (!cancel) setSaved(ids.has(id));
+      })
       .catch(() => undefined);
+    return () => {
+      cancel = true;
+    };
   }, [userId, id]);
+
+  const hasContactPhone = Boolean(tutor?.hasContactPhone);
+  useEffect(() => {
+    if (!isSignedIn || !hasContactPhone) return;
+    let cancel = false;
+    fetchTutorContactPhone(id)
+      .then((phone) => {
+        if (!cancel) setContactPhone(phone);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancel = true;
+    };
+  }, [isSignedIn, hasContactPhone, id]);
 
   async function contact() {
     if (!tutor) return;
-    const draft = `Bonjour ${firstName(tutor.name)}, je souhaite réserver un cours pour…`;
+    const draft = `Bonjour ${firstName(tutor.name)}, je souhaite organiser un cours de…`;
     const next = `/messages/nouveau?tutor=${tutor.id}&draft=${encodeURIComponent(draft)}`;
     if (!isSignedIn || !userId) {
       router.push(`/connexion?next=${encodeURIComponent(next)}`);
+      return;
+    }
+    if (tutor.clerkId === userId) {
+      router.push("/annonce");
       return;
     }
     const existing = await findTutorMatch(userId, tutor.id);
@@ -65,7 +110,7 @@ export default function PublicTutor({ id }: { id: string }) {
     }
   }
 
-  if (!tutor) {
+  if (!loaded) {
     return (
       <main className="grid min-h-[50vh] place-items-center text-black/60">
         {error || "Chargement du profil…"}
@@ -73,6 +118,21 @@ export default function PublicTutor({ id }: { id: string }) {
     );
   }
 
+  if (!tutor) {
+    return (
+      <main className="mx-auto max-w-xl px-4 py-16 text-center">
+        <p className="text-black/65">{error || "Ce profil de professeur est introuvable."}</p>
+        <Link
+          href="/"
+          className="mt-4 inline-block rounded-full bg-[#12382c] px-5 py-2.5 text-sm font-extrabold text-white"
+        >
+          ← Tous les professeurs
+        </Link>
+      </main>
+    );
+  }
+
+  const isOwnProfile = Boolean(userId && tutor.clerkId === userId);
   const name = firstName(tutor.name);
   const facts = [
     { label: "Tarif", value: `${formatRate(tutor.hourlyRate)} €/h` },
@@ -114,7 +174,7 @@ export default function PublicTutor({ id }: { id: string }) {
                   </p>
                 ) : null}
               </div>
-              {isSignedIn ? (
+              {isSignedIn && !isOwnProfile ? (
                 <button
                   type="button"
                   onClick={onToggleSave}
@@ -163,6 +223,38 @@ export default function PublicTutor({ id }: { id: string }) {
         </section>
       ) : null}
 
+      {tutor.hasContactPhone ? (
+        <section className="mt-4 rounded-3xl bg-white p-6">
+          <h2 className="font-extrabold">Téléphone</h2>
+          {isSignedIn ? (
+            contactPhone ? (
+              <p className="mt-3 text-sm leading-7">
+                <a
+                  href={`tel:${contactPhone.replace(/\s+/g, "")}`}
+                  className="font-extrabold text-[#0d9f7a] hover:underline"
+                >
+                  {contactPhone}
+                </a>
+              </p>
+            ) : (
+              <p className="mt-3 text-sm text-black/50">Chargement du numéro…</p>
+            )
+          ) : (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-extrabold tracking-wider text-black/60 select-none blur-[5px]" aria-hidden="true">
+                0470 12 34 56
+              </p>
+              <Link
+                href={`/connexion?next=${encodeURIComponent(`/tuteur/${tutor.id}`)}`}
+                className="rounded-full bg-[#12382c] px-4 py-2 text-xs font-extrabold text-white"
+              >
+                Connecte-toi pour voir le numéro
+              </Link>
+            </div>
+          )}
+        </section>
+      ) : null}
+
       <section className="mt-4 rounded-3xl bg-white p-6">
         <h2 className="font-extrabold">Commentaires</h2>
         {reviews.length ? (
@@ -188,22 +280,49 @@ export default function PublicTutor({ id }: { id: string }) {
       </section>
 
       <div className="sticky bottom-4 mt-6">
-        <button
-          onClick={contact}
-          className="h-12 w-full rounded-full bg-[#0d9f7a] text-sm font-extrabold text-white"
-        >
-          Envoyer un message
-        </button>
-        {error ? <p className="mt-2 text-center text-sm text-[#c23b3b]">{error}</p> : null}
-        <div className="mt-3 flex justify-center">
-          <ReportButton
-            userId={userId}
-            signedIn={Boolean(isSignedIn)}
-            targetType="profile"
-            targetId={tutor.id}
-            label="Signaler ce profil"
-          />
-        </div>
+        {isOwnProfile ? (
+          <div className="rounded-3xl border border-black/10 bg-white p-4 text-center shadow-[0_8px_30px_rgba(15,28,26,0.08)]">
+            <p className="text-sm font-semibold text-black/75">
+              C’est ton propre profil : tu ne peux pas contacter ton propre profil ni t’envoyer un message.
+            </p>
+            <Link
+              href="/annonce"
+              className="mt-3 grid h-11 w-full place-items-center rounded-full bg-[#12382c] text-sm font-extrabold text-white"
+            >
+              Modifier mon annonce
+            </Link>
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={contact}
+              className="h-12 w-full rounded-full bg-[#0d9f7a] text-sm font-extrabold text-white"
+            >
+              {isSignedIn
+                ? "Envoyer un message gratuitement"
+                : "Connecte-toi pour envoyer un message"}
+            </button>
+            {!isSignedIn ? (
+              <p className="mt-2 text-center text-xs text-black/55">
+                Un compte gratuit est requis pour écrire à un professeur.{" "}
+                <Link href="/inscription" className="font-bold text-[#087a5c] underline">
+                  Créer un compte
+                </Link>
+              </p>
+            ) : null}
+            {error ? <p className="mt-2 text-center text-sm text-[#c23b3b]">{error}</p> : null}
+            <div className="mt-3 flex justify-center">
+              <ReportButton
+                userId={userId}
+                signedIn={Boolean(isSignedIn)}
+                targetType="profile"
+                targetId={tutor.id}
+                label="Signaler ce profil"
+              />
+            </div>
+          </>
+        )}
       </div>
     </main>
   );

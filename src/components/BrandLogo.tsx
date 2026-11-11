@@ -25,7 +25,7 @@ export default function BrandLogo({
         width={size}
         height={size}
         priority={priority}
-        className="shrink-0 rounded-lg"
+        className="shrink-0"
       />
       {withWordmark ? <span className={wordmarkClassName}>Clutch</span> : null}
     </span>

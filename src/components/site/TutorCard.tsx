@@ -43,19 +43,23 @@ export default function TutorCard({
   tutor,
   saved = false,
   contacted = false,
+  isOwn = false,
   onToggleSave,
 }: {
   tutor: Tutor;
   saved?: boolean;
   contacted?: boolean;
+  isOwn?: boolean;
   onToggleSave?: () => void;
 }) {
+  const name = firstName(tutor.name);
+  const label = `${name} — ${tutor.specialties[0] || tutor.subject}, ${formatRate(tutor.hourlyRate)} €/h`;
   return (
     <article className="relative isolate flex flex-col rounded-3xl bg-white p-4 shadow-[0_8px_30px_rgba(15,28,26,0.06)] transition hover:-translate-y-0.5">
       <Link
         href={`/tuteur/${tutor.id}`}
         className="absolute inset-0 z-10 rounded-3xl"
-        aria-label={firstName(tutor.name)}
+        aria-label={label}
       />
       <div className="relative">
         <Portrait
@@ -96,14 +100,18 @@ export default function TutorCard({
             {responseLabel(tutor.responseMinutes)}
           </p>
         ) : null}
-        {contacted ? (
+        {isOwn ? (
+          <p className="mt-2 inline-flex rounded-full bg-[#12382c] px-2.5 py-1 text-xs font-bold text-white">
+            Mon annonce
+          </p>
+        ) : contacted ? (
           <p className="mt-2 inline-flex rounded-full bg-[#e7f6f1] px-2.5 py-1 text-xs font-bold text-[#087a5c]">
             Déjà contacté
           </p>
         ) : null}
         <p
           className={`mt-2 text-sm leading-6 text-black/70 ${
-            contacted ? "line-clamp-2" : "line-clamp-3"
+            contacted || isOwn ? "line-clamp-2" : "line-clamp-3"
           }`}
         >
           {tutor.bio || "Présentation à venir."}

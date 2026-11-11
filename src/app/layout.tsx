@@ -17,11 +17,14 @@ const syne = Syne({
   display: "swap",
 });
 
+const SITE_TITLE = "Clutch — Trouvez le bon professeur, gratuitement";
+const SITE_DESCRIPTION =
+  "Parcourez des professeurs particuliers près de chez vous ou à distance, comparez les profils et contactez-les gratuitement pour démarrer un cours.";
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "Clutch — Professeurs disponibles",
-  description:
-    "Trouvez un professeur particulier. Parcourez les profils sans compte, connectez-vous seulement pour envoyer un message.",
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
   alternates: {
     canonical: SITE_URL,
   },
@@ -33,9 +36,8 @@ export const metadata: Metadata = {
     google: "WmqsKchLPlAtA_WGSmQuUzE_6IcIkR3OOMZoZWbXzNU",
   },
   openGraph: {
-    title: "Clutch — Professeurs disponibles",
-    description:
-      "Parcourez les professeurs disponibles. Un compte n’est demandé que pour envoyer un message.",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     url: SITE_URL,
     siteName: "Clutch",
     locale: "fr_FR",
@@ -49,13 +51,20 @@ export const metadata: Metadata = {
       },
     ],
   },
+  twitter: {
+    card: "summary",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: ["/logo.png"],
+  },
   icons: {
     icon: [
-      { url: "/logo.svg", type: "image/svg+xml" },
-      { url: "/logo.png", type: "image/png", sizes: "1024x1024" },
+      { url: "/favicon-32.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon-16.png", type: "image/png", sizes: "16x16" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
     ],
-    shortcut: "/logo.png",
-    apple: [{ url: "/logo.png", sizes: "180x180", type: "image/png" }],
+    shortcut: "/favicon-32.png",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
