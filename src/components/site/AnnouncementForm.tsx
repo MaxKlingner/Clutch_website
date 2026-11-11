@@ -209,7 +209,7 @@ export default function AnnouncementForm() {
   const step3Done = Boolean(bio.trim() && bioWords <= 24);
   const step4Done = Boolean(aboutTutor.trim() && aboutTutorWords <= 80);
   const step5Done = Boolean(aboutCourse.trim() && aboutCourseWords <= 80);
-  const step6Done = Boolean(Number.isFinite(rate) && rate >= 5 && rate <= 150);
+  const step6Done = Boolean(Number.isFinite(rate) && rate >= 5 && rate <= 50);
 
   const checks = [
     { id: "section-1", label: "Photo, identité & commune", done: step1Done },
@@ -300,8 +300,8 @@ export default function AnnouncementForm() {
       setError("La section « À propos du cours » ne doit pas dépasser 80 mots.");
       return;
     }
-    if (!Number.isFinite(rate) || rate < 5 || rate > 150) {
-      setError("Le tarif horaire doit être compris entre 5 € et 150 €.");
+    if (!Number.isFinite(rate) || rate < 5 || rate > 50) {
+      setError("Le tarif horaire doit être compris entre 5 € et 50 €.");
       return;
     }
 
@@ -349,7 +349,14 @@ export default function AnnouncementForm() {
       );
       window.dispatchEvent(new Event("clutch-announcement"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Enregistrement impossible.");
+      const raw = err instanceof Error ? err.message : "";
+      if (raw.toLowerCase().includes("no suitable key") || raw.includes("PGRST301")) {
+        setError(
+          "Authentification Clerk ↔ Supabase refusée (« No suitable key or wrong key type »). Active Clerk dans Supabase → Authentication → Third-Party Auth et Connect with Supabase dans Clerk."
+        );
+      } else {
+        setError(raw || "Enregistrement impossible.");
+      }
     } finally {
       setSaving(false);
     }
@@ -739,7 +746,7 @@ export default function AnnouncementForm() {
             step="6"
             done={step6Done}
             title="Tarif horaire"
-            hint="Choisis ton prix par heure de cours (entre 5 € et 150 €). Affiché tel quel sur ta fiche."
+            hint="Choisis ton prix par heure de cours (entre 5 € et 50 €). Affiché tel quel sur ta fiche."
           >
             <p>
               <span className="font-display text-4xl font-bold text-[#0f1c1a]">
@@ -751,16 +758,16 @@ export default function AnnouncementForm() {
             <input
               type="range"
               min={5}
-              max={150}
-              value={Math.min(150, Math.max(5, rate || 5))}
+              max={50}
+              value={Math.min(50, Math.max(5, rate || 5))}
               onChange={(event) => setRate(Number(event.target.value))}
               className="mt-4 w-full accent-[#0d9f7a]"
             />
             <div className="mt-1 flex justify-between text-xs font-semibold text-black/40">
               <span>5 €</span>
+              <span>15 €</span>
+              <span>30 €</span>
               <span>50 €</span>
-              <span>100 €</span>
-              <span>150 €</span>
             </div>
           </Section>
         </div>
