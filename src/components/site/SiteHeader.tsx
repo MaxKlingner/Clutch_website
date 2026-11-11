@@ -114,6 +114,7 @@ export default function SiteHeader() {
   const teachHref = isSignedIn ? "/annonce" : "/inscription";
   const teachLabel = Boolean(userId) && hasListing ? "Mon annonce" : "Donner des cours";
   const shownUnread = userId ? unreadCount : 0;
+  const showHeaderSearch = pathname !== "/";
 
   return (
     <header ref={headerRef} className="sticky top-0 z-30 border-b border-black/5 bg-white">
@@ -121,9 +122,11 @@ export default function SiteHeader() {
         <Link href="/" className="shrink-0" aria-label="Clutch">
           <BrandLogo size={32} />
         </Link>
-        <div className="hidden min-w-0 flex-1 md:block">
-          <SearchBar />
-        </div>
+        {showHeaderSearch ? (
+          <div className="hidden min-w-0 flex-1 md:block">
+            <SearchBar />
+          </div>
+        ) : null}
         <div
           ref={navRef}
           className="ml-auto flex shrink-0 items-center gap-0.5 text-sm font-semibold sm:gap-2"
@@ -186,9 +189,11 @@ export default function SiteHeader() {
           )}
         </div>
       </div>
-      <div className="mx-auto flex max-w-6xl gap-2 px-4 pb-3 md:hidden">
-        <SearchBar />
-      </div>
+      {showHeaderSearch ? (
+        <div className="mx-auto flex max-w-6xl gap-2 px-4 pb-3 md:hidden">
+          <SearchBar />
+        </div>
+      ) : null}
     </header>
   );
 }

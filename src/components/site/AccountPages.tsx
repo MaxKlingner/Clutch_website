@@ -209,7 +209,7 @@ export function Welcome() {
 
 function BackToTutors() {
   return (
-    <Link href="/" className="text-sm font-semibold text-black/55">
+    <Link href="/professeurs" className="text-sm font-semibold text-black/55">
       ← Tous les professeurs
     </Link>
   );

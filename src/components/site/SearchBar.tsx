@@ -22,7 +22,13 @@ function readRecent(): Recent | null {
   }
 }
 
-export default function SearchBar({ prominent = false }: { prominent?: boolean }) {
+export default function SearchBar({
+  prominent = false,
+  ctaLabel = "Chercher",
+}: {
+  prominent?: boolean;
+  ctaLabel?: string;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const { query, setQuery, setCity, promptAroundOnce } = useSiteSearch();
@@ -54,8 +60,8 @@ export default function SearchBar({ prominent = false }: { prominent?: boolean }
     return () => document.removeEventListener("pointerdown", onPointerDown, true);
   }, [open]);
 
-  function goHome() {
-    if (pathname !== "/") router.push("/");
+  function goCatalog() {
+    if (pathname !== "/professeurs") router.push("/professeurs");
   }
 
   function remember(nextQuery: string) {
@@ -77,7 +83,7 @@ export default function SearchBar({ prominent = false }: { prominent?: boolean }
       promptAroundOnce();
     }
     setOpen(false);
-    goHome();
+    goCatalog();
   }
 
   const subjects = subjectSuggestions(query);
@@ -89,17 +95,32 @@ export default function SearchBar({ prominent = false }: { prominent?: boolean }
       <div
         className={
           prominent
-            ? "flex items-center rounded-2xl bg-white p-1.5 shadow-[0_16px_40px_rgba(15,28,26,0.08)] ring-1 ring-black/5"
+            ? "flex flex-col gap-2 rounded-3xl bg-white p-2 shadow-[0_20px_60px_rgba(15,28,26,0.10)] ring-1 ring-black/5 sm:flex-row sm:items-center sm:p-2"
             : "flex h-11 min-w-0 items-center rounded-2xl bg-[#f6f7f8] ring-1 ring-black/10"
         }
       >
-        <div className="relative min-w-0 flex-1">
+        <div className="relative flex min-w-0 flex-1 items-center">
+          {prominent ? (
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="ml-4 h-5 w-5 shrink-0 text-black/35"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
+          ) : null}
           <input
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
               setOpen(true);
-              goHome();
+              if (!prominent) goCatalog();
             }}
             onClick={() => setOpen(true)}
             onFocus={() => setOpen(true)}
@@ -109,16 +130,16 @@ export default function SearchBar({ prominent = false }: { prominent?: boolean }
                 submitSubject(query);
               }
             }}
-            placeholder="Quelle matière ?"
+            placeholder={prominent ? "Quelle matière cherchez-vous ? (Maths, Anglais…)" : "Quelle matière ?"}
             aria-label="Quelle matière ?"
             className={
               prominent
-                ? "h-12 w-full rounded-xl px-4 text-base outline-none placeholder:text-black/35"
+                ? "h-12 w-full rounded-2xl bg-transparent pr-4 pl-3 text-base outline-none placeholder:text-black/40"
                 : "h-11 w-full bg-transparent px-4 text-sm outline-none"
             }
           />
           {showRecent || showSubjects ? (
-            <div className="absolute top-[calc(100%+8px)] right-0 left-0 z-30 overflow-hidden rounded-2xl bg-white py-1 shadow-[0_18px_50px_rgba(15,28,26,0.14)] ring-1 ring-black/5">
+            <div className="absolute top-[calc(100%+10px)] right-0 left-0 z-30 max-h-80 overflow-y-auto rounded-2xl bg-white py-1 text-left shadow-[0_18px_50px_rgba(15,28,26,0.14)] ring-1 ring-black/5">
               {showRecent && recent ? (
                 <button
                   type="button"
@@ -156,11 +177,11 @@ export default function SearchBar({ prominent = false }: { prominent?: boolean }
           onClick={() => submitSubject(query)}
           className={
             prominent
-              ? "h-12 shrink-0 rounded-xl bg-[#12382c] px-5 text-sm font-extrabold text-white"
-              : "mr-1 h-9 shrink-0 rounded-lg bg-[#12382c] px-3 text-xs font-extrabold text-white"
+              ? "h-12 shrink-0 rounded-2xl bg-[#12382c] px-6 text-sm font-extrabold text-white shadow-[0_8px_20px_rgba(18,56,44,0.18)] transition hover:bg-[#087a5c]"
+              : "mr-1 h-9 shrink-0 rounded-lg bg-[#12382c] px-3 text-xs font-extrabold text-white transition hover:bg-[#087a5c]"
           }
         >
-          Chercher
+          {ctaLabel}
         </button>
       </div>
     </div>

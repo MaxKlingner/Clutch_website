@@ -34,7 +34,7 @@ export default function AccountSettings() {
   if (!ready || !userId || !user) {
     return (
       <main className="mx-auto max-w-xl px-4 py-8 sm:px-6">
-        <Link href="/" className="text-sm font-semibold text-black/55">
+        <Link href="/professeurs" className="text-sm font-semibold text-black/55">
           ← Tous les professeurs
         </Link>
         <p className="grid min-h-[40vh] place-items-center text-black/50">Chargement…</p>
@@ -276,7 +276,7 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
 
   return (
     <main className="mx-auto max-w-xl px-4 py-8 sm:px-6">
-      <Link href="/" className="text-sm font-semibold text-black/55">
+      <Link href="/professeurs" className="text-sm font-semibold text-black/55">
         ← Tous les professeurs
       </Link>
       <h1 className="mt-4 font-display text-3xl font-bold">Compte</h1>

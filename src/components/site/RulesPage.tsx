@@ -9,7 +9,7 @@ export default function RulesPage({
 }) {
   return (
     <main className="mx-auto max-w-xl px-4 py-8 sm:px-6">
-      <Link href="/" className="text-sm font-semibold text-black/55">
+      <Link href="/professeurs" className="text-sm font-semibold text-black/55">
         ← Tous les professeurs
       </Link>
       <h1 className="mt-4 font-display text-3xl font-bold">{title}</h1>

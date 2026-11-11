@@ -1,5 +1,7 @@
-import Catalog from "@/components/catalog/Catalog";
-import { fetchTutors } from "@/lib/db";
+import { redirect } from "next/navigation";
+import Landing from "@/components/home/Landing";
+import { fetchTutors, type Tutor } from "@/lib/db";
+import { queryString } from "@/lib/redirects";
 
 export const dynamic = "force-dynamic";
 
@@ -9,12 +11,16 @@ export default async function Home({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const initialView = params.vue === "carte" ? "carte" : "liste";
-  let initialTutors;
+  if (params.q || params.ville || params.vue) {
+    redirect(`/professeurs${queryString(params)}`);
+  }
+
+  let initialTutors: Tutor[] = [];
   try {
     initialTutors = await fetchTutors();
   } catch {
-    initialTutors = undefined;
+    initialTutors = [];
   }
-  return <Catalog initialTutors={initialTutors} initialView={initialView} />;
+
+  return <Landing initialTutors={initialTutors} />;
 }

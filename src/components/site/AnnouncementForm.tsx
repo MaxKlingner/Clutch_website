@@ -249,7 +249,7 @@ export default function AnnouncementForm() {
   if (!ready) {
     return (
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <Link href="/" className="text-sm font-semibold text-black/55">
+        <Link href="/professeurs" className="text-sm font-semibold text-black/55">
           ← Tous les professeurs
         </Link>
         <p className="grid min-h-[40vh] place-items-center text-black/50">Chargement…</p>
@@ -266,7 +266,7 @@ export default function AnnouncementForm() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <Link href="/" className="text-sm font-semibold text-black/55">
+      <Link href="/professeurs" className="text-sm font-semibold text-black/55">
         ← Tous les professeurs
       </Link>
       <div className="mt-4 flex flex-wrap items-end justify-between gap-3">

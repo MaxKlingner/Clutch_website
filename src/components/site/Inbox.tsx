@@ -82,7 +82,7 @@ export default function Inbox({
   if (!ready) {
     return (
       <div className="mx-auto max-w-6xl px-5 py-8">
-        <Link href="/" className="text-sm font-semibold text-black/55">
+        <Link href="/professeurs" className="text-sm font-semibold text-black/55">
           ← Tous les professeurs
         </Link>
         <p className="grid min-h-[40vh] place-items-center text-black/50">Chargement…</p>
@@ -100,7 +100,7 @@ export default function Inbox({
   return (
     <div className="mx-auto flex h-[calc(100dvh-9rem)] max-w-6xl flex-col overflow-hidden md:h-[calc(100dvh-5.5rem)]">
       <div className="px-5 pt-4 pb-3">
-        <Link href="/" className="text-sm font-semibold text-black/55">
+        <Link href="/professeurs" className="text-sm font-semibold text-black/55">
           ← Tous les professeurs
         </Link>
       </div>
