@@ -532,16 +532,37 @@ export async function saveAccountIdentity(input: {
   const given = input.firstName.trim();
   const family = input.lastName.trim();
   const fullName = [given, family].filter(Boolean).join(" ") || null;
-  const { error } = await db
+  const now = new Date().toISOString();
+  const { data: existing } = await db
     .from("user_profiles")
-    .update({
+    .select("clerk_id")
+    .eq("clerk_id", input.clerkId)
+    .maybeSingle();
+
+  if (!existing) {
+    const { error } = await db.from("user_profiles").insert({
+      clerk_id: input.clerkId,
+      role: ROLES.PARENT,
+      active_role: ROLES.PARENT,
       first_name: given || null,
       last_name: family || null,
       full_name: fullName,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("clerk_id", input.clerkId);
-  if (error) throw new Error(error.message);
+      visited_parent_at: now,
+      updated_at: now,
+    });
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await db
+      .from("user_profiles")
+      .update({
+        first_name: given || null,
+        last_name: family || null,
+        full_name: fullName,
+        updated_at: now,
+      })
+      .eq("clerk_id", input.clerkId);
+    if (error) throw new Error(error.message);
+  }
   const tutor = await fetchMyTutorProfile(input.clerkId);
   if (!tutor || !fullName) return;
   const { error: profileError } = await db
@@ -562,40 +583,12 @@ export async function setAccountAvatar(clerkId: string, avatarUrl: string | null
   if (error) throw new Error(error.message);
 }
 
-export async function saveSignupProfile(input: {
-  clerkId: string;
-  role: Role;
-  firstName: string;
-  lastName: string;
-  city?: string;
-  email?: string | null;
-}) {
-  const fullName = [input.firstName, input.lastName].filter(Boolean).join(" ").trim();
-  await setActiveRole(input.clerkId, input.role, fullName);
-  const db = getSupabase();
-  const cleanEmail = input.email?.trim() || null;
-  const { error } = await db
-    .from("user_profiles")
-    .update({
-      first_name: input.firstName || null,
-      last_name: input.lastName || null,
-      city: input.city || null,
-      full_name: fullName || null,
-      ...(cleanEmail ? { email: cleanEmail } : {}),
-    })
-    .eq("clerk_id", input.clerkId);
-  if (error) throw new Error(error.message);
-  if (cleanEmail) {
-    await db
-      .from("email_consents")
-      .upsert({ clerk_id: input.clerkId, email: cleanEmail }, { onConflict: "clerk_id" });
-  }
-}
-
 export async function syncUserEmail(
   clerkId: string,
   email: string,
-  fullName?: string | null
+  fullName?: string | null,
+  firstName?: string | null,
+  lastName?: string | null
 ) {
   const clean = email.trim();
   if (!clean) return;
@@ -603,16 +596,35 @@ export async function syncUserEmail(
   const now = new Date().toISOString();
   const { data: existing } = await db
     .from("user_profiles")
-    .select("clerk_id, email, full_name")
+    .select("clerk_id, email, full_name, first_name, last_name")
     .eq("clerk_id", clerkId)
     .maybeSingle();
 
-  if (existing && (existing.email !== clean || (!existing.full_name && fullName))) {
+  if (!existing) {
+    await db.from("user_profiles").insert({
+      clerk_id: clerkId,
+      role: ROLES.PARENT,
+      active_role: ROLES.PARENT,
+      email: clean,
+      first_name: firstName?.trim() || null,
+      last_name: lastName?.trim() || null,
+      full_name: fullName?.trim() || null,
+      visited_parent_at: now,
+      updated_at: now,
+    });
+  } else if (
+    existing.email !== clean ||
+    (!existing.full_name && fullName?.trim()) ||
+    (!existing.first_name && firstName?.trim()) ||
+    (!existing.last_name && lastName?.trim())
+  ) {
     await db
       .from("user_profiles")
       .update({
         email: clean,
-        full_name: existing.full_name || fullName || null,
+        first_name: existing.first_name || firstName?.trim() || null,
+        last_name: existing.last_name || lastName?.trim() || null,
+        full_name: existing.full_name || fullName?.trim() || null,
         updated_at: now,
       })
       .eq("clerk_id", clerkId);

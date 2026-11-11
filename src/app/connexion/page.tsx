@@ -9,10 +9,11 @@ function SignInForm() {
   const next = params.get("next");
   const dest =
     next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : "/";
+  const signUpHref = next ? `/inscription?next=${encodeURIComponent(dest)}` : "/inscription";
   return (
     <SignIn
       routing="hash"
-      signUpUrl="/inscription"
+      signUpUrl={signUpHref}
       forceRedirectUrl={dest}
       fallbackRedirectUrl={dest}
     />

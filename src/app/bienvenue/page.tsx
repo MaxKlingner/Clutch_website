@@ -1,7 +1,5 @@
-"use client";
-
-import { Welcome } from "@/components/site/AccountPages";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return <Welcome />;
+  redirect("/");
 }

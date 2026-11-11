@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuth, useClerk, useUser } from "@clerk/clerk-react";
+import { useAuth, useClerk, useSession, useUser } from "@clerk/clerk-react";
 import { useEffect, useRef, useState } from "react";
 import BrandLogo from "@/components/BrandLogo";
 import SearchBar from "@/components/site/SearchBar";
@@ -18,6 +18,7 @@ export default function SiteHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { isSignedIn, userId } = useAuth();
+  const { session } = useSession();
   const { user } = useUser();
   const { signOut } = useClerk();
   const [hasListing, setHasListing] = useState(false);
@@ -92,15 +93,17 @@ export default function SiteHeader() {
 
   const primaryEmail = user?.primaryEmailAddress?.emailAddress || "";
   const clerkFullName = user?.fullName || null;
+  const clerkFirstName = user?.firstName || null;
+  const clerkLastName = user?.lastName || null;
   useEffect(() => {
-    if (!userId || !primaryEmail) return;
+    if (!userId || !session || !primaryEmail) return;
     const key = `clutch_email_synced_${userId}:${primaryEmail}`;
     try {
       if (sessionStorage.getItem(key)) return;
     } catch {
       // Ignore storage errors
     }
-    syncUserEmail(userId, primaryEmail, clerkFullName)
+    syncUserEmail(userId, primaryEmail, clerkFullName, clerkFirstName, clerkLastName)
       .then(() => {
         try {
           sessionStorage.setItem(key, "1");
@@ -109,9 +112,9 @@ export default function SiteHeader() {
         }
       })
       .catch(() => undefined);
-  }, [userId, primaryEmail, clerkFullName]);
+  }, [userId, session, primaryEmail, clerkFullName, clerkFirstName, clerkLastName]);
 
-  const teachHref = isSignedIn ? "/annonce" : "/inscription";
+  const teachHref = isSignedIn ? "/annonce" : "/inscription?next=%2Fannonce";
   const teachLabel = Boolean(userId) && hasListing ? "Mon annonce" : "Donner des cours";
   const shownUnread = userId ? unreadCount : 0;
   const overHero = pathname === "/";
