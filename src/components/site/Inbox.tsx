@@ -97,8 +97,8 @@ export default function Inbox({
   );
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-9rem)] max-w-6xl flex-col overflow-hidden md:h-[calc(100dvh-5.5rem)]">
-      <div className="px-5 pt-4 pb-3">
+    <div className="mx-auto flex h-[calc(100dvh-var(--site-header,7.35rem))] max-w-6xl flex-col overflow-hidden md:h-[calc(100dvh-5.5rem)]">
+      <div className="hidden px-5 pt-4 pb-3 md:block">
         <BackLink />
       </div>
       <div className="grid min-h-0 flex-1 overflow-hidden md:grid-cols-[320px_1fr]">
@@ -391,7 +391,11 @@ function ThreadView({
   return (
     <>
       <div className="flex items-center gap-3 border-b border-black/5 bg-white px-4 py-3">
-        <Link href="/messages" className="text-sm font-semibold text-black/50 md:hidden">
+        <Link
+          href="/messages"
+          aria-label="Retour aux messages"
+          className="-ml-2 grid h-9 w-9 shrink-0 place-items-center rounded-full text-base font-semibold text-black/60 hover:bg-black/5 md:hidden"
+        >
           ←
         </Link>
         {tutor && !isTutorInThread ? (
