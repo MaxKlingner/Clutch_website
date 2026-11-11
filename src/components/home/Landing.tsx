@@ -65,32 +65,25 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
 
   return (
     <main className="relative overflow-x-clip">
-      <section className="relative isolate mx-auto max-w-6xl px-4 pt-12 pb-12 sm:px-6 sm:pt-18 sm:pb-16">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-4 inset-y-0 -z-10 overflow-hidden sm:inset-x-6"
-          style={{
-            maskImage:
-              "radial-gradient(ellipse 76% 78% at 50% 48%, black 34%, rgba(0,0,0,0.45) 64%, transparent 94%)",
-            WebkitMaskImage:
-              "radial-gradient(ellipse 76% 78% at 50% 48%, black 34%, rgba(0,0,0,0.45) 64%, transparent 94%)",
-          }}
-        >
+      <section className="relative isolate flex min-h-[480px] items-center sm:min-h-[560px]">
+        <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden bg-[#12382c]">
           <Image
             src="/hero-bg.jpg"
             alt=""
             fill
             priority
-            sizes="(max-width: 1152px) 100vw, 1152px"
-            className="object-cover object-[65%_30%] opacity-60"
+            sizes="100vw"
+            className="object-cover object-[64%_28%]"
           />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_64%_58%_at_50%_46%,rgba(246,247,248,0.88)_0%,rgba(246,247,248,0.68)_52%,rgba(246,247,248,0.16)_100%)]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0f1c1a]/60 via-[#0f1c1a]/48 to-[#0f1c1a]/70" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(15,28,26,0.34)_0%,rgba(15,28,26,0.65)_100%)]" />
+          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#f6f7f8] via-[#f6f7f8]/55 to-transparent" />
         </div>
 
-        <div className="mx-auto w-full max-w-3xl text-center">
-          <h1 className="font-display text-4xl font-bold tracking-tight text-[#0f1c1a] sm:text-6xl sm:leading-[1.06]">
+        <div className="mx-auto w-full max-w-4xl px-4 pt-14 pb-20 text-center sm:px-6 sm:pt-20 sm:pb-24">
+          <h1 className="mx-auto max-w-3xl font-display text-4xl font-bold tracking-tight text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.32)] sm:text-6xl sm:leading-[1.06]">
             Trouver son professeur,{" "}
-            <span className="text-[#087a5c]">simplement et gratuitement.</span>
+            <span className="text-[#7ee8c9]">simplement et gratuitement.</span>
           </h1>
 
           <div className="mx-auto mt-8 max-w-2xl">
@@ -103,7 +96,7 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
                 key={subject}
                 type="button"
                 onClick={() => openSubject(subject)}
-                className="rounded-full border border-black/10 bg-white/90 px-3.5 py-1.5 text-xs font-semibold text-black/75 shadow-[0_2px_10px_rgba(15,28,26,0.04)] backdrop-blur-sm transition hover:border-[#0d9f7a] hover:bg-white hover:text-[#087a5c]"
+                className="rounded-full border border-white/25 bg-white/15 px-3.5 py-1.5 text-xs font-semibold text-white backdrop-blur-md transition hover:border-white/50 hover:bg-white/25"
               >
                 {subject}
               </button>
@@ -113,7 +106,7 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
       </section>
 
       {previewTutors.length ? (
-        <section className="mx-auto max-w-6xl px-4 pt-6 pb-6 sm:px-6">
+        <section className="mx-auto max-w-6xl px-4 pt-4 pb-6 sm:px-6">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-xs font-extrabold tracking-[0.16em] text-[#087a5c] uppercase">
