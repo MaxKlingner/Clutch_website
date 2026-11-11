@@ -145,7 +145,7 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
             </Link>
           </div>
 
-          <div className="mt-8 grid grid-cols-2 gap-4 sm:mt-10 lg:grid-cols-4">
+          <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-2 lg:grid-cols-4">
             {previewTutors.map((tutor) => (
               <TutorCard key={tutor.id} tutor={tutor} />
             ))}

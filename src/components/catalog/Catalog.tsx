@@ -175,7 +175,7 @@ export default function Catalog({
       {error ? <p className="mt-4 text-sm text-[#c23b3b]">{error}</p> : null}
 
       {loading ? (
-        <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4" aria-busy="true">
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-busy="true">
           {Array.from({ length: 8 }).map((_, index) => (
             <div key={index} className="animate-pulse rounded-3xl bg-white p-4 shadow-[0_8px_30px_rgba(15,28,26,0.04)]">
               <div className="aspect-square w-full rounded-2xl bg-black/5" />
@@ -186,7 +186,7 @@ export default function Catalog({
           ))}
         </div>
       ) : view === "liste" ? (
-        <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {visible.map((tutor) => {
             const isOwn = Boolean(userId && tutor.clerkId === userId);
             return (

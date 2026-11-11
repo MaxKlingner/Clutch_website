@@ -135,7 +135,7 @@ export default function TutorCard({
 
       <div className="mt-3 flex min-w-0 flex-1 flex-col">
         <div className="flex items-baseline justify-between gap-2">
-          <h2 className="truncate font-display text-base font-bold tracking-tight text-[#0f1c1a] sm:text-lg">
+          <h2 className="truncate font-display text-lg font-bold tracking-tight text-[#0f1c1a]">
             {name}
           </h2>
           <p className="shrink-0 text-base font-extrabold text-[#087a5c]">

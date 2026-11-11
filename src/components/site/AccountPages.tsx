@@ -30,7 +30,7 @@ export function Favorites() {
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <BackLink />
       <h1 className="mt-4 font-display text-3xl font-bold">Favoris</h1>
-      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {tutors.map((tutor) => (
           <TutorCard
             key={tutor.id}

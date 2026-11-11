@@ -163,17 +163,36 @@ export default function PublicTutor({
         <div className="min-w-0 space-y-5">
           <section className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)] sm:p-8">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-              <Portrait
-                name={tutor.name}
-                url={tutor.avatarUrl}
-                className="aspect-square h-28 w-28 shrink-0 rounded-2xl object-cover sm:h-36 sm:w-36"
-              />
+              <div className="flex items-center gap-4 sm:contents">
+                <Portrait
+                  name={tutor.name}
+                  url={tutor.avatarUrl}
+                  className="aspect-square h-28 w-28 shrink-0 rounded-2xl object-cover sm:h-36 sm:w-36"
+                />
+                <div className="min-w-0 flex-1 sm:hidden">
+                  <p className="text-xs font-extrabold tracking-wide text-black/45 uppercase">
+                    Tarif horaire
+                  </p>
+                  <p className="mt-1">
+                    <span className="font-display text-3xl font-bold text-[#0f1c1a]">
+                      {formatRate(tutor.hourlyRate)} €
+                    </span>
+                    <span className="ml-1 text-sm font-semibold text-black/50">/ heure</span>
+                  </p>
+                </div>
+              </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h1 className="font-display text-3xl font-bold tracking-tight break-words text-[#0f1c1a] sm:text-4xl">
                       {name}
                     </h1>
+                    <p className="mt-2 hidden sm:block lg:hidden">
+                      <span className="font-display text-2xl font-bold text-[#0f1c1a]">
+                        {formatRate(tutor.hourlyRate)} €
+                      </span>
+                      <span className="ml-1 text-sm font-semibold text-black/50">/ heure</span>
+                    </p>
                     <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs font-semibold">
                       {tutor.rating > 0 ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-[#fff9e6] px-3 py-1 font-bold text-[#8a6500]">
@@ -259,6 +278,21 @@ export default function PublicTutor({
                 </div>
               ) : null}
             </div>
+
+            {tutor.hasContactPhone ? (
+              <div className="mt-5 border-t border-black/5 pt-4 lg:hidden">
+                <ContactPhoneSection
+                  tutorId={tutor.id}
+                  isSignedIn={Boolean(isSignedIn)}
+                  contactPhone={contactPhone}
+                  phoneState={phoneState}
+                  onRetry={() => {
+                    setPhoneState("idle");
+                    setPhoneRetry((n) => n + 1);
+                  }}
+                />
+              </div>
+            ) : null}
           </section>
 
           <section className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)] sm:p-8">
@@ -330,9 +364,24 @@ export default function PublicTutor({
               </p>
             )}
           </section>
+          {isOwnProfile ? (
+            <div className="rounded-3xl bg-white p-5 shadow-[0_8px_30px_rgba(15,28,26,0.05)] lg:hidden">
+              <OwnProfileNotice />
+            </div>
+          ) : (
+            <div className="flex justify-center pt-1 lg:hidden">
+              <ReportButton
+                userId={userId}
+                signedIn={Boolean(isSignedIn)}
+                targetType="profile"
+                targetId={tutor.id}
+                label="Signaler ce profil"
+              />
+            </div>
+          )}
         </div>
 
-        <aside className="space-y-4 lg:sticky lg:top-[calc(var(--site-header,3.5rem)+1.5rem)]">
+        <aside className="hidden space-y-4 lg:sticky lg:top-[calc(var(--site-header,3.5rem)+1.5rem)] lg:block">
           <div className="rounded-3xl bg-white p-6 shadow-[0_12px_40px_rgba(15,28,26,0.07)] ring-1 ring-black/5">
             <div>
               <p>
@@ -364,69 +413,22 @@ export default function PublicTutor({
 
             {tutor.hasContactPhone ? (
               <div className="mt-5 border-t border-black/5 pt-4">
-                <p className="text-xs font-extrabold tracking-wide text-black/45 uppercase">
-                  Téléphone
-                </p>
-                {isSignedIn ? (
-                  contactPhone ? (
-                    <a
-                      href={`tel:${contactPhone.replace(/\s+/g, "")}`}
-                      className="mt-2 flex items-center justify-between rounded-2xl bg-[#f3fbf8] px-4 py-3 text-sm font-extrabold text-[#087a5c] ring-1 ring-[#0d9f7a]/20 transition hover:bg-[#e7f6f1]"
-                    >
-                      <span>{contactPhone}</span>
-                      <span className="text-xs">Appeler →</span>
-                    </a>
-                  ) : phoneState === "error" ? (
-                    <div className="mt-2 flex items-center justify-between gap-2 rounded-2xl bg-[#fdf1f1] px-3.5 py-2.5 text-xs font-semibold text-[#c23b3b]">
-                      <span>Numéro indisponible (accès refusé).</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPhoneState("idle");
-                          setPhoneRetry((n) => n + 1);
-                        }}
-                        className="shrink-0 font-extrabold underline"
-                      >
-                        Réessayer
-                      </button>
-                    </div>
-                  ) : phoneState === "loaded" ? (
-                    <p className="mt-2 text-sm text-black/50">Numéro non communiqué.</p>
-                  ) : (
-                    <p className="mt-2 text-sm text-black/50">Chargement du numéro…</p>
-                  )
-                ) : (
-                  <div className="mt-2 rounded-2xl bg-[#f6f7f8] p-3.5">
-                    <p
-                      className="text-sm font-extrabold tracking-wider text-black/60 select-none blur-[5px]"
-                      aria-hidden="true"
-                    >
-                      0470 12 34 56
-                    </p>
-                    <Link
-                      href={`/connexion?next=${encodeURIComponent(`/tuteur/${tutor.id}`)}`}
-                      className="mt-2.5 inline-block rounded-full bg-[#12382c] px-4 py-2 text-xs font-extrabold text-white transition hover:bg-[#087a5c]"
-                    >
-                      Connecte-toi pour voir le numéro
-                    </Link>
-                  </div>
-                )}
+                <ContactPhoneSection
+                  tutorId={tutor.id}
+                  isSignedIn={Boolean(isSignedIn)}
+                  contactPhone={contactPhone}
+                  phoneState={phoneState}
+                  onRetry={() => {
+                    setPhoneState("idle");
+                    setPhoneRetry((n) => n + 1);
+                  }}
+                />
               </div>
             ) : null}
 
             <div className="mt-5 border-t border-black/5 pt-5">
               {isOwnProfile ? (
-                <div className="rounded-2xl bg-[#f6f7f8] p-4 text-center">
-                  <p className="text-xs leading-5 font-semibold text-black/70">
-                    C’est ton propre profil : tu ne peux pas contacter ton propre profil ni t’envoyer un message.
-                  </p>
-                  <Link
-                    href="/annonce"
-                    className="mt-3 grid h-11 w-full place-items-center rounded-full bg-[#12382c] text-sm font-extrabold text-white transition hover:bg-[#087a5c]"
-                  >
-                    Modifier mon annonce
-                  </Link>
-                </div>
+                <OwnProfileNotice />
               ) : (
                 <>
                   <button
@@ -468,6 +470,11 @@ export default function PublicTutor({
 
       {!isOwnProfile ? (
         <div className="sticky bottom-4 z-20 mt-6 lg:hidden">
+          {error ? (
+            <p className="mb-2 rounded-2xl bg-[#fdf1f1] px-4 py-2 text-center text-xs font-semibold text-[#c23b3b] shadow-sm">
+              {error}
+            </p>
+          ) : null}
           <button
             type="button"
             onClick={contact}
@@ -480,5 +487,78 @@ export default function PublicTutor({
         </div>
       ) : null}
     </main>
+  );
+}
+
+function ContactPhoneSection({
+  tutorId,
+  isSignedIn,
+  contactPhone,
+  phoneState,
+  onRetry,
+}: {
+  tutorId: string;
+  isSignedIn: boolean;
+  contactPhone: string | null;
+  phoneState: "idle" | "loaded" | "error";
+  onRetry: () => void;
+}) {
+  return (
+    <>
+      <p className="text-xs font-extrabold tracking-wide text-black/45 uppercase">Téléphone</p>
+      {isSignedIn ? (
+        contactPhone ? (
+          <a
+            href={`tel:${contactPhone.replace(/\s+/g, "")}`}
+            className="mt-2 flex items-center justify-between rounded-2xl bg-[#f3fbf8] px-4 py-3 text-sm font-extrabold text-[#087a5c] ring-1 ring-[#0d9f7a]/20 transition hover:bg-[#e7f6f1]"
+          >
+            <span>{contactPhone}</span>
+            <span className="text-xs">Appeler →</span>
+          </a>
+        ) : phoneState === "error" ? (
+          <div className="mt-2 flex items-center justify-between gap-2 rounded-2xl bg-[#fdf1f1] px-3.5 py-2.5 text-xs font-semibold text-[#c23b3b]">
+            <span>Numéro indisponible (accès refusé).</span>
+            <button type="button" onClick={onRetry} className="shrink-0 font-extrabold underline">
+              Réessayer
+            </button>
+          </div>
+        ) : phoneState === "loaded" ? (
+          <p className="mt-2 text-sm text-black/50">Numéro non communiqué.</p>
+        ) : (
+          <p className="mt-2 text-sm text-black/50">Chargement du numéro…</p>
+        )
+      ) : (
+        <div className="mt-2 rounded-2xl bg-[#f6f7f8] p-3.5">
+          <p
+            className="text-sm font-extrabold tracking-wider text-black/60 select-none blur-[5px]"
+            aria-hidden="true"
+          >
+            0470 12 34 56
+          </p>
+          <Link
+            href={`/connexion?next=${encodeURIComponent(`/tuteur/${tutorId}`)}`}
+            className="mt-2.5 inline-block rounded-full bg-[#12382c] px-4 py-2 text-xs font-extrabold text-white transition hover:bg-[#087a5c]"
+          >
+            Connecte-toi pour voir le numéro
+          </Link>
+        </div>
+      )}
+    </>
+  );
+}
+
+function OwnProfileNotice() {
+  return (
+    <div className="rounded-2xl bg-[#f6f7f8] p-4 text-center">
+      <p className="text-xs leading-5 font-semibold text-black/70">
+        C’est ton propre profil : tu ne peux pas contacter ton propre profil ni t’envoyer un message.
+      </p>
+      <Link
+        href="/annonce"
+        className="mt-3 grid h-11 w-full place-items-center rounded-full bg-[#12382c] text-sm font-extrabold text-white transition hover:bg-[#087a5c]"
+      >
+        Modifier mon annonce
+      </Link>
+    </div>
   );
 }
