@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/clerk-react";
@@ -64,37 +65,47 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
 
   return (
     <main className="relative overflow-x-clip">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(13,159,122,0.12),transparent_70%)]"
-      />
-
-      <section className="mx-auto max-w-4xl px-4 pt-14 pb-12 text-center sm:px-6 sm:pt-20 sm:pb-16">
-        <h1 className="mx-auto max-w-3xl font-display text-4xl font-bold tracking-tight text-[#0f1c1a] sm:text-6xl sm:leading-[1.06]">
-          Trouver son professeur,{" "}
-          <span className="text-[#087a5c]">simplement et gratuitement.</span>
-        </h1>
-
-        <div className="mx-auto mt-8 max-w-2xl">
-          <SearchBar prominent ctaLabel="Trouver mon professeur →" />
+      <section className="relative isolate flex min-h-[460px] items-center sm:min-h-[540px]">
+        <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden bg-[#12382c]">
+          <Image
+            src="/hero-bg.jpg"
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-[65%_30%]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0f1c1a]/65 via-[#0f1c1a]/50 to-[#0f1c1a]/75" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(15,28,26,0.36)_0%,rgba(15,28,26,0.68)_100%)]" />
         </div>
 
-        <div className="mx-auto mt-5 flex max-w-2xl flex-wrap items-center justify-center gap-2">
-          {QUICK_SUBJECTS.map((subject) => (
-            <button
-              key={subject}
-              type="button"
-              onClick={() => openSubject(subject)}
-              className="rounded-full border border-black/10 bg-white px-3.5 py-1.5 text-xs font-semibold text-black/70 transition hover:border-[#0d9f7a] hover:text-[#087a5c]"
-            >
-              {subject}
-            </button>
-          ))}
+        <div className="mx-auto w-full max-w-4xl px-4 py-14 text-center sm:px-6 sm:py-20">
+          <h1 className="mx-auto max-w-3xl font-display text-4xl font-bold tracking-tight text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.32)] sm:text-6xl sm:leading-[1.06]">
+            Trouver son professeur,{" "}
+            <span className="text-[#7ee8c9]">simplement et gratuitement.</span>
+          </h1>
+
+          <div className="mx-auto mt-8 max-w-2xl">
+            <SearchBar prominent ctaLabel="Trouver mon professeur →" />
+          </div>
+
+          <div className="mx-auto mt-5 flex max-w-2xl flex-wrap items-center justify-center gap-2">
+            {QUICK_SUBJECTS.map((subject) => (
+              <button
+                key={subject}
+                type="button"
+                onClick={() => openSubject(subject)}
+                className="rounded-full border border-white/25 bg-white/15 px-3.5 py-1.5 text-xs font-semibold text-white backdrop-blur-md transition hover:border-white/50 hover:bg-white/25"
+              >
+                {subject}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
       {previewTutors.length ? (
-        <section className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+        <section className="mx-auto max-w-6xl px-4 pt-12 pb-6 sm:px-6 sm:pt-14">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-xs font-extrabold tracking-[0.16em] text-[#087a5c] uppercase">
