@@ -120,12 +120,18 @@ export default function SiteHeader() {
 
   useEffect(() => {
     if (!overHero) return;
-    const update = () => setScrolled(window.scrollY > 24);
+    const update = () => {
+      const hero = document.getElementById("landing-hero");
+      const heroBottom = hero ? hero.getBoundingClientRect().bottom : 0;
+      setScrolled(hero ? heroBottom <= 140 : window.scrollY > 420);
+    };
     const raf = requestAnimationFrame(update);
     window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update, { passive: true });
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
     };
   }, [overHero]);
 
@@ -136,14 +142,20 @@ export default function SiteHeader() {
       ref={headerRef}
       className={
         overHero
-          ? `fixed inset-x-0 top-0 z-30 transition-colors duration-200 ${
-              transparentHero
-                ? "border-b border-transparent bg-gradient-to-b from-[#0f1c1a]/55 to-transparent text-white"
-                : "border-b border-black/5 bg-white/95 text-[#0f1c1a] backdrop-blur-md"
+          ? `fixed inset-x-0 top-0 z-30 transition-colors duration-300 ${
+              transparentHero ? "text-white" : "text-[#0f1c1a]"
             }`
           : "sticky top-0 z-30 border-b border-black/5 bg-white text-[#0f1c1a]"
       }
     >
+      {overHero ? (
+        <div
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-0 -z-10 bg-white/95 shadow-[0_1px_0_rgba(15,28,26,0.06)] backdrop-blur-md transition-opacity duration-300 ${
+            transparentHero ? "opacity-0" : "opacity-100"
+          }`}
+        />
+      ) : null}
       <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6">
         <Link href="/" className="shrink-0" aria-label="Clutch">
           <BrandLogo size={32} onDark={transparentHero} />
@@ -159,7 +171,7 @@ export default function SiteHeader() {
         >
           <Link
             href={teachHref}
-            className={`rounded-full px-2.5 py-2 transition sm:px-3 ${
+            className={`rounded-full px-2.5 py-2 transition duration-300 sm:px-3 ${
               transparentHero ? "text-white hover:bg-white/15" : "hover:bg-black/5"
             }`}
           >
@@ -191,7 +203,7 @@ export default function SiteHeader() {
                   aria-label="Compte"
                   title="Compte"
                   aria-expanded={open}
-                  className={`grid h-10 w-10 place-items-center rounded-full transition ${
+                  className={`grid h-10 w-10 place-items-center rounded-full transition duration-300 ${
                     transparentHero
                       ? open || pathname.startsWith("/compte")
                         ? "bg-white/20 text-white"
@@ -228,8 +240,8 @@ export default function SiteHeader() {
               href="/connexion"
               className={
                 transparentHero
-                  ? "rounded-full bg-white px-4 py-2 font-bold text-[#12382c] shadow-sm transition hover:bg-[#e7f6f1]"
-                  : "rounded-full bg-[#12382c] px-4 py-2 text-white transition hover:bg-[#087a5c]"
+                  ? "rounded-full bg-white px-4 py-2 font-bold text-[#12382c] shadow-sm transition duration-300 hover:bg-[#e7f6f1]"
+                  : "rounded-full bg-[#12382c] px-4 py-2 text-white transition duration-300 hover:bg-[#087a5c]"
               }
             >
               Connexion
@@ -266,7 +278,7 @@ function IconLink({
       href={href}
       aria-label={label}
       title={label}
-      className={`relative grid h-10 w-10 place-items-center rounded-full transition ${
+      className={`relative grid h-10 w-10 place-items-center rounded-full transition duration-300 ${
         onDark
           ? active
             ? "bg-white/20 text-white"

@@ -65,7 +65,7 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
 
   return (
     <main className="relative overflow-x-clip">
-      <section className="relative isolate flex min-h-[600px] items-start sm:min-h-[720px]">
+      <section id="landing-hero" className="relative isolate flex min-h-[600px] items-start sm:min-h-[720px]">
         <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden bg-[#12382c]">
           <Image
             src="/hero-bg.jpg"
@@ -75,7 +75,7 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
             sizes="100vw"
             className="object-cover object-[64%_30%]"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0f1c1a]/70 via-[#0f1c1a]/42 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0f1c1a]/62 via-[#0f1c1a]/42 to-transparent" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(15,28,26,0.34)_0%,rgba(15,28,26,0.58)_72%,rgba(15,28,26,0.2)_100%)]" />
           <div
             className="absolute inset-x-0 bottom-0 h-56 sm:h-72"

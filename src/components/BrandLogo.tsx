@@ -19,31 +19,29 @@ export default function BrandLogo({
   onDark = false,
   priority = false,
 }: BrandLogoProps) {
-  const mark = (
-    <Image
-      src="/logo.png"
-      alt={withWordmark ? "" : "Clutch"}
-      width={onDark ? Math.max(20, size - 6) : size}
-      height={onDark ? Math.max(20, size - 6) : size}
-      priority={priority}
-      className="shrink-0"
-    />
-  );
-
   return (
     <span className={`inline-flex items-center gap-2.5 ${className}`}>
-      {onDark ? (
-        <span
-          className="grid shrink-0 place-items-center rounded-xl bg-white/95 shadow-sm"
-          style={{ width: size, height: size }}
-        >
-          {mark}
-        </span>
-      ) : (
-        mark
-      )}
+      <span
+        className={`grid shrink-0 place-items-center rounded-xl transition-colors duration-300 ${
+          onDark ? "bg-white/95 shadow-sm" : "bg-transparent"
+        }`}
+        style={{ width: size, height: size }}
+      >
+        <Image
+          src="/logo.png"
+          alt={withWordmark ? "" : "Clutch"}
+          width={Math.max(22, size - 4)}
+          height={Math.max(22, size - 4)}
+          priority={priority}
+          className="shrink-0"
+        />
+      </span>
       {withWordmark ? (
-        <span className={onDark ? "font-display text-xl font-bold tracking-tight text-white" : wordmarkClassName}>
+        <span
+          className={`transition-colors duration-300 ${
+            onDark ? "font-display text-xl font-bold tracking-tight text-white" : wordmarkClassName
+          }`}
+        >
           Clutch
         </span>
       ) : null}
