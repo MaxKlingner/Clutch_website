@@ -5,22 +5,10 @@ export const RADIUS_STEPS = [5, 10, 15, 20, 30, 50] as const;
 
 export const LEVEL_GROUPS = [
   { id: "primaire", label: "Primaire", levels: ["Primaire"] },
-  {
-    id: "secondaire",
-    label: "Secondaire",
-    levels: [
-      "Secondaire",
-      "1ère secondaire",
-      "2ème secondaire",
-      "3ème secondaire",
-      "4ème secondaire",
-      "5ème secondaire",
-      "6ème secondaire",
-    ],
-  },
+  { id: "secondaire", label: "Secondaire", levels: ["Secondaire"] },
   {
     id: "superieur",
-    label: "Enseignement Supérieur",
+    label: "Supérieur",
     levels: ["Supérieur", "Enseignement Supérieur"],
   },
   {

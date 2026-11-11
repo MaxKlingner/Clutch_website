@@ -4,11 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/clerk-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import SearchBar from "@/components/site/SearchBar";
 import { useSiteSearch } from "@/components/site/Search";
 import TutorCard from "@/components/site/TutorCard";
-import type { Tutor } from "@/lib/db";
+import { fetchTutors, type Tutor } from "@/lib/db";
 
 const QUICK_SUBJECTS = [
   "Mathématiques",
@@ -41,9 +41,22 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
   const router = useRouter();
   const { isSignedIn } = useAuth();
   const { setQuery, promptAroundOnce } = useSiteSearch();
+  const [tutors, setTutors] = useState<Tutor[]>(initialTutors);
+
+  useEffect(() => {
+    let cancel = false;
+    fetchTutors()
+      .then((rows) => {
+        if (!cancel) setTutors(rows);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancel = true;
+    };
+  }, []);
 
   const previewTutors = useMemo(() => {
-    return [...initialTutors]
+    return [...tutors]
       .sort((a, b) => {
         const photoScore = Number(Boolean(b.avatarUrl)) - Number(Boolean(a.avatarUrl));
         if (photoScore !== 0) return photoScore;
@@ -51,7 +64,7 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
         return b.reviewCount - a.reviewCount;
       })
       .slice(0, 4);
-  }, [initialTutors]);
+  }, [tutors]);
 
   function openSubject(subject: string) {
     setQuery(subject);
@@ -127,7 +140,7 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
               onClick={openAll}
               className="text-sm font-bold text-[#087a5c] hover:underline"
             >
-              Voir tous les professeurs ({initialTutors.length}) →
+              Voir tous les professeurs ({tutors.length}) →
             </Link>
           </div>
 

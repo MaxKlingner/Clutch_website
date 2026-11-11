@@ -271,7 +271,7 @@ BEGIN
     NULL, 'Sébastien N’Diaye', 'Sciences, Mathématiques', 32, 0, 0, 'tutor',
     'Physicien pédagogue à Mont-Saint-Guibert pour réussir les trois premières années du secondaire en sciences.', 'Passionné par la vulgarisation scientifique, j’aide les jeunes du 1er et 2e degré secondaire à comprendre plutôt qu’à réciter par cœur leurs formules.', 'Expériences visuelles simples, schémas en couleurs et fiches d’exercices graduées du niveau CE1D jusqu’aux interrogations surprises.', ARRAY['Sciences', 'Mathématiques']::text[], 'https://i.pravatar.cc/400?img=12',
     'Mont-Saint-Guibert', '1435', 50.63656, 4.6127,
-    ARRAY['Face à face', 'À distance']::text[], ARRAY['1ère secondaire', '2ème secondaire', '3ème secondaire']::text[],
+    ARRAY['Face à face', 'À distance']::text[], ARRAY['Secondaire']::text[],
     'Master en sciences physiques', 'Université de Namur (UNamur)', 2021,
     12, '+32 472 33 44 55', now() - interval '408 hours'
   ) RETURNING id INTO v_tutor_id;
@@ -614,7 +614,7 @@ BEGIN
     NULL, 'Hugo Claessens', 'Économie, Mathématiques', 65, 0, 0, 'tutor',
     'Économiste à Uccle, soutien en microéconomie, macroéconomie, comptabilité générale et mathématiques financières.', 'Chargé de travaux dirigés pendant quatre ans, j’aide les élèves de rhéto et étudiants de 1re bac à structurer leurs raisonnements chiffrés.', 'Cas pratiques issus de la presse économique belge, exercices graphiques et préparation rigoureuse aux QCM et questions ouvertes.', ARRAY['Économie', 'Mathématiques']::text[], 'https://i.pravatar.cc/400?img=15',
     'Uccle', '1180', 50.80182, 4.33723,
-    ARRAY['Face à face', 'À distance']::text[], ARRAY['5ème secondaire', '6ème secondaire', 'Supérieur']::text[],
+    ARRAY['Face à face', 'À distance']::text[], ARRAY['Secondaire', 'Supérieur']::text[],
     'Master en sciences économiques', 'UCLouvain Saint-Louis Bruxelles', 2018,
     55, '+32 475 66 77 88', now() - interval '240 hours'
   ) RETURNING id INTO v_tutor_id;

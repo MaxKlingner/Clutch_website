@@ -89,10 +89,25 @@ export type ChatMessage = {
 
 const useClerkJwt = process.env.NEXT_PUBLIC_CLERK_SUPABASE_AUTH !== "false";
 let client: SupabaseClient | null = null;
+let publicClient: SupabaseClient | null = null;
 let tokenProvider: (() => Promise<string | null>) | null = null;
 
 export function setSupabaseTokenProvider(provider: (() => Promise<string | null>) | null) {
   tokenProvider = provider;
+}
+
+function getPublicSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  if (!url || !key) {
+    throw new Error("Supabase n’est pas configuré.");
+  }
+  if (typeof window === "undefined") {
+    return createClient(url, key);
+  }
+  if (publicClient) return publicClient;
+  publicClient = createClient(url, key);
+  return publicClient;
 }
 
 export function getSupabase() {
@@ -161,6 +176,23 @@ function published(tutor: Tutor) {
   return announcementPublished(tutor);
 }
 
+function normalizeLevels(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const item of raw) {
+    const text = String(item || "").trim();
+    if (!text) continue;
+    const lower = text.toLowerCase();
+    let label = text;
+    if (lower.includes("primaire")) label = "Primaire";
+    else if (lower.includes("secondaire")) label = "Secondaire";
+    else if (lower.includes("supérieur") || lower.includes("superieur")) label = "Supérieur";
+    else if (lower.includes("adulte")) label = "Formation pour adultes";
+    if (!out.includes(label)) out.push(label);
+  }
+  return out;
+}
+
 function mapTutor(row: Record<string, unknown> | null): Tutor | null {
   if (!row) return null;
   const specialties = Array.isArray(row.specialties)
@@ -193,7 +225,7 @@ function mapTutor(row: Record<string, unknown> | null): Tutor | null {
     teachingFormats: Array.isArray(row.teaching_formats)
       ? row.teaching_formats.map(String)
       : [],
-    taughtLevels: Array.isArray(row.taught_levels) ? row.taught_levels.map(String) : [],
+    taughtLevels: normalizeLevels(row.taught_levels),
     diplomaTitle: row.diploma_title ? String(row.diploma_title) : "",
     diplomaSchool: row.diploma_school ? String(row.diploma_school) : "",
     diplomaYear:
@@ -244,7 +276,7 @@ function mapMatch(
 }
 
 export async function fetchTutors(excludeClerkId?: string | null) {
-  const db = getSupabase();
+  const db = getPublicSupabase();
   const { data, error } = await db
     .from("profiles")
     .select(PROFILE_COLUMNS)
@@ -259,7 +291,7 @@ export async function fetchTutors(excludeClerkId?: string | null) {
 }
 
 export async function fetchTutor(id: string) {
-  const db = getSupabase();
+  const db = getPublicSupabase();
   const { data, error } = await db.from("profiles").select(PROFILE_COLUMNS).eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
   return mapTutor(data);
@@ -308,7 +340,7 @@ function mapReview(row: Record<string, unknown>): Review {
 }
 
 export async function fetchReviews(tutorId: string) {
-  const db = getSupabase();
+  const db = getPublicSupabase();
   const { data, error } = await db
     .from("reviews")
     .select("id, match_id, rating, comment, created_at, reply, replied_at")
