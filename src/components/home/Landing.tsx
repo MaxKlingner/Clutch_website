@@ -65,7 +65,7 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
 
   return (
     <main className="relative overflow-x-clip">
-      <section className="relative isolate flex min-h-[480px] items-center sm:min-h-[560px]">
+      <section className="relative isolate flex min-h-[580px] items-start sm:min-h-[700px]">
         <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden bg-[#12382c]">
           <Image
             src="/hero-bg.jpg"
@@ -73,14 +73,20 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
             fill
             priority
             sizes="100vw"
-            className="object-cover object-[64%_28%]"
+            className="object-cover object-[64%_32%]"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0f1c1a]/60 via-[#0f1c1a]/48 to-[#0f1c1a]/70" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(15,28,26,0.34)_0%,rgba(15,28,26,0.65)_100%)]" />
-          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#f6f7f8] via-[#f6f7f8]/55 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0f1c1a]/60 via-[#0f1c1a]/42 to-transparent" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_38%,rgba(15,28,26,0.34)_0%,rgba(15,28,26,0.58)_72%,rgba(15,28,26,0.2)_100%)]" />
+          <div
+            className="absolute inset-x-0 bottom-0 h-56 sm:h-72"
+            style={{
+              background:
+                "linear-gradient(to top, #f6f7f8 0%, rgba(246, 247, 248, 0.94) 18%, rgba(246, 247, 248, 0.78) 38%, rgba(246, 247, 248, 0.5) 60%, rgba(246, 247, 248, 0.2) 82%, rgba(246, 247, 248, 0) 100%)",
+            }}
+          />
         </div>
 
-        <div className="mx-auto w-full max-w-4xl px-4 pt-14 pb-20 text-center sm:px-6 sm:pt-20 sm:pb-24">
+        <div className="mx-auto w-full max-w-4xl px-4 pt-16 pb-40 text-center sm:px-6 sm:pt-24 sm:pb-52">
           <h1 className="mx-auto max-w-3xl font-display text-4xl font-bold tracking-tight text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.32)] sm:text-6xl sm:leading-[1.06]">
             Trouver son professeur,{" "}
             <span className="text-[#7ee8c9]">simplement et gratuitement.</span>
@@ -106,7 +112,7 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
       </section>
 
       {previewTutors.length ? (
-        <section className="mx-auto max-w-6xl px-4 pt-4 pb-6 sm:px-6">
+        <section className="relative z-10 mx-auto -mt-14 max-w-6xl px-4 pb-6 sm:-mt-20 sm:px-6">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-xs font-extrabold tracking-[0.16em] text-[#087a5c] uppercase">
