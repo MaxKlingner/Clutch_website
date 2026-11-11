@@ -182,11 +182,11 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
 
       <section className="mx-auto max-w-6xl px-4 pb-14 sm:px-6">
         <div className="flex flex-col items-start justify-between gap-5 rounded-3xl bg-[#12382c] p-7 text-white sm:flex-row sm:items-center sm:p-10">
-          <div className="max-w-xl">
+          <div className="max-w-2xl">
             <h2 className="font-display text-2xl font-bold sm:text-3xl">
-              Vous donnez des cours particuliers ?
+              Vous donnez des cours particuliers{"\u00A0"}?
             </h2>
-            <p className="mt-2 text-sm leading-6 text-white/75">
+            <p className="mt-2 max-w-xl text-sm leading-6 text-white/75">
               Publiez votre annonce gratuitement en quelques minutes et échangez directement avec vos futurs élèves.
             </p>
           </div>
