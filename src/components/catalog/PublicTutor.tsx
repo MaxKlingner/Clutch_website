@@ -17,7 +17,6 @@ import {
   type Review,
   type Tutor,
 } from "@/lib/db";
-import { diplomaLine } from "@/lib/trust";
 
 function formatReviewDate(iso: string) {
   if (!iso) return null;
@@ -142,7 +141,6 @@ export default function PublicTutor({
     : tutor.subject
       ? [tutor.subject]
       : [];
-  const fullDiploma = diplomaLine(tutor);
   const placeLabel = tutor.city
     ? tutor.postalCode
       ? `${tutor.city} (${tutor.postalCode})`
@@ -262,23 +260,6 @@ export default function PublicTutor({
             <p className="mt-3 text-sm leading-7 whitespace-pre-line text-black/75">
               {tutor.aboutTutor || "Présentation à venir."}
             </p>
-            {fullDiploma ? (
-              <div className="mt-5 rounded-2xl bg-[#f3fbf8] p-4 ring-1 ring-[#0d9f7a]/15">
-                <p className="text-[11px] font-extrabold tracking-[0.14em] text-[#087a5c] uppercase">
-                  Diplôme & formation
-                </p>
-                {tutor.diplomaTitle ? (
-                  <>
-                    <p className="mt-1 font-bold text-[#0f1c1a]">{tutor.diplomaTitle}</p>
-                    <p className="mt-0.5 text-xs font-medium text-black/60">
-                      {[tutor.diplomaSchool, tutor.diplomaYear].filter(Boolean).join(" · ")}
-                    </p>
-                  </>
-                ) : (
-                  <p className="mt-1 text-sm font-semibold text-[#0f1c1a]">{fullDiploma}</p>
-                )}
-              </div>
-            ) : null}
           </section>
 
           <section className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)] sm:p-8">

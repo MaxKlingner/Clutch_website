@@ -21,7 +21,7 @@ export const LEVELS = [
 export const FORMATS = ["Face à face", "À distance"] as const;
 
 const PROFILE_COLUMNS =
-  "id, clerk_id, full_name, subject, hourly_rate, rating, review_count, role, bio, about_tutor, about_course, specialties, study_year, avatar_url, city, postal_code, latitude, longitude, teaching_formats, taught_levels, diploma_title, diploma_school, diploma_year, has_contact_phone, created_at";
+  "id, clerk_id, full_name, subject, hourly_rate, rating, review_count, role, bio, about_tutor, about_course, specialties, study_year, avatar_url, city, postal_code, latitude, longitude, teaching_formats, taught_levels, has_contact_phone, created_at";
 
 export type Tutor = {
   id: string;
@@ -42,9 +42,6 @@ export type Tutor = {
   longitude: number | null;
   teachingFormats: string[];
   taughtLevels: string[];
-  diplomaTitle: string;
-  diplomaSchool: string;
-  diplomaYear: number | null;
   hasContactPhone: boolean;
 };
 
@@ -142,9 +139,6 @@ export function announcementPublished(
         | "city"
         | "teachingFormats"
         | "taughtLevels"
-        | "diplomaTitle"
-        | "diplomaSchool"
-        | "diplomaYear"
         | "hourlyRate"
         | "avatarUrl"
       >
@@ -162,9 +156,6 @@ export function announcementPublished(
       tutor.bio.trim() &&
       tutor.aboutTutor.trim() &&
       tutor.aboutCourse.trim() &&
-      tutor.diplomaTitle.trim() &&
-      tutor.diplomaSchool.trim() &&
-      tutor.diplomaYear != null &&
       tutor.teachingFormats.length > 0 &&
       tutor.taughtLevels.length > 0 &&
       tutor.hourlyRate >= 5
@@ -225,12 +216,6 @@ function mapTutor(row: Record<string, unknown> | null): Tutor | null {
       ? row.teaching_formats.map(String)
       : [],
     taughtLevels: normalizeLevels(row.taught_levels),
-    diplomaTitle: row.diploma_title ? String(row.diploma_title) : "",
-    diplomaSchool: row.diploma_school ? String(row.diploma_school) : "",
-    diplomaYear:
-      row.diploma_year == null || !Number.isInteger(Number(row.diploma_year)) || Number(row.diploma_year) <= 0
-        ? null
-        : Number(row.diploma_year),
     hasContactPhone: Boolean(row.has_contact_phone),
   };
 }
@@ -1067,9 +1052,6 @@ export async function saveAnnouncement(
     longitude?: number | null;
     teachingFormats: string[];
     taughtLevels: string[];
-    diplomaTitle?: string;
-    diplomaSchool?: string;
-    diplomaYear?: number | null;
     contactPhone?: string | null;
     avatarUrl?: string | null;
   }
@@ -1086,9 +1068,6 @@ export async function saveAnnouncement(
     !input.specialties.length ||
     !input.teachingFormats.length ||
     !input.taughtLevels.length ||
-    !input.diplomaTitle?.trim() ||
-    !input.diplomaSchool?.trim() ||
-    input.diplomaYear == null ||
     !Number.isFinite(input.hourlyRate) ||
     input.hourlyRate < 5
   ) {
@@ -1108,9 +1087,6 @@ export async function saveAnnouncement(
     longitude: input.longitude ?? null,
     teaching_formats: input.teachingFormats,
     taught_levels: input.taughtLevels,
-    diploma_title: input.diplomaTitle?.trim() || null,
-    diploma_school: input.diplomaSchool?.trim() || null,
-    diploma_year: input.diplomaYear ?? null,
     contact_phone: input.contactPhone?.trim() || null,
     role: "tutor",
     ...(avatar ? { avatar_url: avatar } : {}),

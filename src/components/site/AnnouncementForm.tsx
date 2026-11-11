@@ -26,7 +26,6 @@ import {
   type Review,
   type Tutor,
 } from "@/lib/db";
-import { diplomaLine, diplomaPayload } from "@/lib/trust";
 import { resolveLocationQuery, suggestLocations, type ResolvedPlace } from "@/lib/locations";
 
 const LEVEL_OPTIONS = ["Primaire", "Secondaire", "Supérieur", "Formation pour adultes"] as const;
@@ -50,9 +49,6 @@ export default function AnnouncementForm() {
   const [bio, setBio] = useState("");
   const [aboutTutor, setAboutTutor] = useState("");
   const [aboutCourse, setAboutCourse] = useState("");
-  const [diplomaTitle, setDiplomaTitle] = useState("");
-  const [diplomaSchool, setDiplomaSchool] = useState("");
-  const [diplomaYear, setDiplomaYear] = useState("");
   const [profileId, setProfileId] = useState<string | null>(null);
   const [rating, setRating] = useState(0);
   const [reviewCount, setReviewCount] = useState(0);
@@ -113,9 +109,6 @@ export default function AnnouncementForm() {
       setBio(profile.bio);
       setAboutTutor(profile.aboutTutor);
       setAboutCourse(profile.aboutCourse);
-      setDiplomaTitle(profile.diplomaTitle);
-      setDiplomaSchool(profile.diplomaSchool);
-      setDiplomaYear(profile.diplomaYear ? String(profile.diplomaYear) : "");
       setRate(profile.hourlyRate || 25);
 
       const initialCity = profile.city || identity?.city || "";
@@ -200,13 +193,6 @@ export default function AnnouncementForm() {
   const shownPhoto = photoUrl || (user?.hasImage ? user.imageUrl : null);
   const fullName = [firstNameValue.trim(), lastNameValue.trim()].filter(Boolean).join(" ").trim();
   const resolvedPlace = place ?? resolveLocationQuery(city);
-  const parsedDiploma = diplomaPayload(diplomaTitle, diplomaSchool, diplomaYear, true);
-  const diplomaValid = !("error" in parsedDiploma);
-  const diplomaPreview = diplomaLine({
-    diplomaTitle: diplomaTitle.trim(),
-    diplomaSchool: diplomaSchool.trim(),
-    diplomaYear: diplomaYear.trim() ? Number(diplomaYear) : null,
-  });
 
   const bioWords = countWords(bio);
   const aboutTutorWords = countWords(aboutTutor);
@@ -222,7 +208,7 @@ export default function AnnouncementForm() {
   );
   const step2Done = Boolean(specialties.length && levels.length && formats.length);
   const step3Done = Boolean(bio.trim() && bioWords <= 24);
-  const step4Done = Boolean(aboutTutor.trim() && aboutTutorWords <= 80 && diplomaValid);
+  const step4Done = Boolean(aboutTutor.trim() && aboutTutorWords <= 80);
   const step5Done = Boolean(aboutCourse.trim() && aboutCourseWords <= 80);
   const step6Done = Boolean(Number.isFinite(rate) && rate >= 5 && rate <= 150);
 
@@ -230,7 +216,7 @@ export default function AnnouncementForm() {
     { id: "section-1", label: "Photo, identité & commune", done: step1Done },
     { id: "section-2", label: "Matières, public & format", done: step2Done },
     { id: "section-3", label: "Accroche", done: step3Done },
-    { id: "section-4", label: "Parcours & diplôme", done: step4Done },
+    { id: "section-4", label: "À propos de toi", done: step4Done },
     { id: "section-5", label: "Déroulement du cours", done: step5Done },
     { id: "section-6", label: "Tarif horaire", done: step6Done },
   ];
@@ -255,9 +241,6 @@ export default function AnnouncementForm() {
     longitude: resolvedPlace?.longitude ?? null,
     teachingFormats: formats,
     taughtLevels: levels,
-    diplomaTitle: diplomaTitle.trim(),
-    diplomaSchool: diplomaSchool.trim(),
-    diplomaYear: diplomaYear.trim() ? Number(diplomaYear) : null,
     hasContactPhone: Boolean(contactPhone.trim()),
   };
 
@@ -310,10 +293,6 @@ export default function AnnouncementForm() {
       setError("La section « À propos de toi » ne doit pas dépasser 80 mots.");
       return;
     }
-    if ("error" in parsedDiploma) {
-      setError(parsedDiploma.error ?? "Complète les champs du diplôme.");
-      return;
-    }
     if (!aboutCourse.trim()) {
       setError("Remplis la section « À propos du cours ».");
       return;
@@ -352,9 +331,6 @@ export default function AnnouncementForm() {
         longitude: resolvedPlace.longitude ?? null,
         teachingFormats: formats,
         taughtLevels: levels,
-        diplomaTitle: parsedDiploma.diplomaTitle,
-        diplomaSchool: parsedDiploma.diplomaSchool,
-        diplomaYear: parsedDiploma.diplomaYear,
         contactPhone: cleanPhone || null,
         avatarUrl,
       });
@@ -731,61 +707,16 @@ export default function AnnouncementForm() {
             id="section-4"
             step="4"
             done={step4Done}
-            title="À propos de toi & diplôme"
-            hint="Parle à la première personne de ton parcours, puis renseigne ton diplôme ou cursus principal."
+            title="À propos de toi"
+            hint="Parle à la première personne de ton parcours, de ton expérience et des élèves que tu accompagnes."
           >
             <CountedText
               value={aboutTutor}
               max={80}
               rows={5}
               onChange={setAboutTutor}
-              placeholder="Ex. Diplômé en sciences mathématiques avec 5 ans d’expérience, j’accompagne des élèves du secondaire et de 1re bac…"
+              placeholder="Ex. Passionné par l’enseignement avec 5 ans d’expérience, j’accompagne des élèves du secondaire et du supérieur…"
             />
-
-            <div className="mt-5 rounded-2xl border border-black/5 bg-[#f6f7f8] p-4 sm:p-5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs font-extrabold tracking-wide text-black/55 uppercase">
-                  Formation / Diplôme principal *
-                </p>
-                {diplomaPreview ? (
-                  <span className="rounded-full bg-white px-3 py-0.5 text-xs font-semibold text-[#087a5c] ring-1 ring-black/5">
-                    {diplomaPreview}
-                  </span>
-                ) : null}
-              </div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                <label className="block sm:col-span-1">
-                  <span className="text-[11px] font-bold text-black/50">Intitulé *</span>
-                  <input
-                    value={diplomaTitle}
-                    onChange={(event) => setDiplomaTitle(event.target.value)}
-                    placeholder="Ex. Master en mathématiques"
-                    className={`${field} mt-1 bg-white`}
-                  />
-                </label>
-                <label className="block sm:col-span-1">
-                  <span className="text-[11px] font-bold text-black/50">Établissement *</span>
-                  <input
-                    value={diplomaSchool}
-                    onChange={(event) => setDiplomaSchool(event.target.value)}
-                    placeholder="Ex. UCLouvain"
-                    className={`${field} mt-1 bg-white`}
-                  />
-                </label>
-                <label className="block sm:col-span-1">
-                  <span className="text-[11px] font-bold text-black/50">Année d’obtention *</span>
-                  <input
-                    value={diplomaYear}
-                    onChange={(event) =>
-                      setDiplomaYear(event.target.value.replace(/\D/g, "").slice(0, 4))
-                    }
-                    inputMode="numeric"
-                    placeholder="Ex. 2023"
-                    className={`${field} mt-1 bg-white`}
-                  />
-                </label>
-              </div>
-            </div>
           </Section>
 
           <Section
@@ -891,12 +822,6 @@ export default function AnnouncementForm() {
                 <dt className="shrink-0 text-black/45">Format</dt>
                 <dd className="text-right font-semibold text-[#0f1c1a]">
                   {formats.join(" · ") || "À choisir"}
-                </dd>
-              </div>
-              <div className="flex items-start justify-between gap-3">
-                <dt className="shrink-0 text-black/45">Diplôme</dt>
-                <dd className="text-right font-semibold text-[#0f1c1a]">
-                  {diplomaPreview || "À renseigner"}
                 </dd>
               </div>
               <div className="flex items-start justify-between gap-3">

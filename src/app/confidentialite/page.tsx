@@ -14,11 +14,10 @@ export default function Page() {
         <br />
         Le compte contient le prénom, le nom, l’adresse e-mail, la date de naissance, le téléphone,
         l’adresse postale, le genre (facultatif) et la photo. L’annonce publique affiche le prénom, la
-        photo, la commune, les matières, les niveaux, les formats, le tarif horaire, les textes de
-        présentation et le diplôme éventuel. Si le professeur choisit d’ajouter un numéro de
-        téléphone sur son annonce, celui-ci reste masqué aux visiteurs sans compte et n’est visible
-        que par les membres connectés. Les discussions, avis, réponses et
-        signalements sont également enregistrés.
+        photo, la commune, les matières, les niveaux, les formats, le tarif horaire et les textes de
+        présentation. Si le professeur choisit d’ajouter un numéro de téléphone sur son annonce,
+        celui-ci reste masqué aux visiteurs sans compte et n’est visible que par les membres
+        connectés. Les discussions, avis, réponses et signalements sont également enregistrés.
       </p>
       <p>
         <strong className="font-semibold text-black">Finalités, notifications et modération</strong>

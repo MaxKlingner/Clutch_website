@@ -15,18 +15,18 @@ export default function Page() {
       </p>
       <p>Une personne n’a qu’un seul compte. Tu confirmes cette règle en t’inscrivant.</p>
       <p>
-        L’annonce décrit tes matières, ton tarif horaire, ton diplôme éventuel et ta façon de donner
-        cours. Tu peux aussi choisir d’y afficher un numéro de téléphone (visible uniquement par les
-        utilisateurs connectés avec un compte). Les contenus commerciaux non sollicités ou le spam
-        restent interdits.
+        L’annonce décrit tes matières, ton tarif horaire et ta façon de donner cours. Tu peux aussi
+        choisir d’y afficher un numéro de téléphone (visible uniquement par les utilisateurs
+        connectés avec un compte). Les contenus commerciaux non sollicités ou le spam restent
+        interdits.
       </p>
       <p>
         <strong className="font-semibold text-black">Absence de vérification et responsabilité</strong>
         <br />
-        Clutch agit uniquement comme intermédiaire technique gratuit. Clutch ne vérifie pas
-        l’authenticité des diplômes, les compétences pédagogiques ni le casier judiciaire des
-        professeurs. Chaque utilisateur publie sous sa propre responsabilité. Les cours, horaires et
-        modalités éventuelles sont convenus directement entre particuliers, en dehors du site.
+        Clutch agit uniquement comme intermédiaire technique gratuit. Clutch ne vérifie pas les
+        parcours déclarés, les compétences pédagogiques ni le casier judiciaire des professeurs.
+        Chaque utilisateur publie sous sa propre responsabilité. Les cours, horaires et modalités
+        éventuelles sont convenus directement entre particuliers, en dehors du site.
       </p>
       <p>
         Un avis ne peut être laissé par l’élève ou le parent qu’après un échange effectif de
