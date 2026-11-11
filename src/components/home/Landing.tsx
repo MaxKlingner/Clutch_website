@@ -65,7 +65,7 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
 
   return (
     <main className="relative overflow-x-clip">
-      <section id="landing-hero" className="relative isolate flex min-h-[600px] items-start sm:min-h-[720px]">
+      <section id="landing-hero" className="relative isolate flex min-h-[680px] items-start sm:min-h-[820px]">
         <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden bg-[#12382c]">
           <Image
             src="/hero-bg.jpg"
@@ -86,7 +86,7 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
           />
         </div>
 
-        <div className="mx-auto w-full max-w-4xl px-4 pt-28 pb-40 text-center sm:px-6 sm:pt-36 sm:pb-52">
+        <div className="mx-auto w-full max-w-4xl px-4 pt-28 pb-52 text-center sm:px-6 sm:pt-36 sm:pb-64">
           <h1 className="mx-auto max-w-3xl font-display text-4xl font-bold tracking-tight text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.32)] sm:text-6xl sm:leading-[1.06]">
             Trouver son professeur,{" "}
             <span className="text-[#7ee8c9]">simplement et gratuitement.</span>
