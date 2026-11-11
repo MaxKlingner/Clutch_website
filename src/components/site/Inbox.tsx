@@ -98,7 +98,7 @@ export default function Inbox({
 
   return (
     <div className="mx-auto flex h-[calc(100dvh-var(--site-header,7.35rem))] max-w-6xl flex-col overflow-hidden md:h-[calc(100dvh-5.5rem)]">
-      <div className="hidden px-5 pt-4 pb-3 md:block">
+      <div className={open ? "hidden px-5 pt-4 pb-3 md:block" : "px-5 pt-4 pb-3"}>
         <BackLink />
       </div>
       <div className="grid min-h-0 flex-1 overflow-hidden md:grid-cols-[320px_1fr]">
