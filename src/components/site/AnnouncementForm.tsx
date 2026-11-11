@@ -29,7 +29,6 @@ import {
 import { resolveLocationQuery, suggestLocations, type ResolvedPlace } from "@/lib/locations";
 
 const LEVEL_OPTIONS = ["Primaire", "Secondaire", "Supérieur", "Formation pour adultes"] as const;
-const RATE_PRESETS = [15, 25, 35, 45, 60] as const;
 
 const FORMAT_DETAILS: Record<string, string> = {
   "Face à face": "En présentiel chez toi ou chez l’élève",
@@ -742,46 +741,12 @@ export default function AnnouncementForm() {
             title="Tarif horaire"
             hint="Choisis ton prix par heure de cours (entre 5 € et 150 €). Affiché tel quel sur ta fiche."
           >
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <p>
-                <span className="font-display text-4xl font-bold text-[#0f1c1a]">
-                  {formatRate(rate)} €
-                </span>
-                <span className="ml-1.5 text-sm font-semibold text-black/45">/ heure</span>
-              </p>
-
-              <div className="flex items-center gap-2">
-                <label className="flex items-center gap-2 text-xs font-bold text-black/50">
-                  <span>Montant exact</span>
-                  <input
-                    type="number"
-                    min={5}
-                    max={150}
-                    value={rate || ""}
-                    onChange={(event) => setRate(Math.max(0, Number(event.target.value) || 0))}
-                    className="w-24 rounded-2xl border border-black/10 bg-[#f6f7f8] px-3 py-2 text-right text-sm font-bold text-[#0f1c1a] outline-none focus:border-[#12382c] focus:bg-white"
-                  />
-                </label>
-                <span className="text-sm font-bold text-black/45">€/h</span>
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              {RATE_PRESETS.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setRate(preset)}
-                  className={`rounded-full px-3.5 py-1.5 text-xs font-extrabold transition ${
-                    rate === preset
-                      ? "bg-[#12382c] text-white"
-                      : "bg-[#f6f7f8] text-black/65 hover:bg-[#eceff1]"
-                  }`}
-                >
-                  {preset} €
-                </button>
-              ))}
-            </div>
+            <p>
+              <span className="font-display text-4xl font-bold text-[#0f1c1a]">
+                {formatRate(rate)} €
+              </span>
+              <span className="ml-1.5 text-sm font-semibold text-black/45">/ heure</span>
+            </p>
 
             <input
               type="range"
@@ -802,12 +767,9 @@ export default function AnnouncementForm() {
 
         <aside className="space-y-4 lg:sticky lg:top-[calc(var(--site-header,3.5rem)+1.5rem)]">
           <div className="rounded-3xl bg-white p-4 shadow-[0_12px_40px_rgba(15,28,26,0.07)] ring-1 ring-black/5">
-            <div className="mb-3 flex items-center justify-between gap-2 px-1">
-              <p className="text-xs font-extrabold tracking-wide text-black/45 uppercase">
-                Aperçu catalogue
-              </p>
-              <span className="text-[11px] font-semibold text-[#087a5c]">Temps réel</span>
-            </div>
+            <p className="mb-3 px-1 text-xs font-extrabold tracking-wide text-black/45 uppercase">
+              Aperçu catalogue
+            </p>
             <div className="pointer-events-none select-none">
               <TutorCard tutor={previewTutor} isOwn />
             </div>
