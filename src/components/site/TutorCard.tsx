@@ -41,14 +41,6 @@ function shortFormats(formats: string[]) {
   return tags;
 }
 
-function shortResponse(minutes: number | null | undefined) {
-  if (minutes == null || !Number.isFinite(minutes)) return null;
-  if (minutes <= 60) return "Répond < 1 h";
-  if (minutes <= 24 * 60) return "Répond < 24 h";
-  if (minutes <= 48 * 60) return "Répond < 48 h";
-  return null;
-}
-
 export function Portrait({
   name,
   url,
@@ -103,7 +95,6 @@ export default function TutorCard({
   const name = firstName(tutor.name);
   const subjects = tutor.specialties.length ? tutor.specialties : tutor.subject ? [tutor.subject] : [];
   const formats = shortFormats(tutor.teachingFormats);
-  const replySpeed = shortResponse(tutor.responseMinutes);
   const label = `${name} — ${subjects[0] || "Professeur"}, ${formatRate(tutor.hourlyRate)} €/h`;
 
   return (
@@ -186,13 +177,10 @@ export default function TutorCard({
           </div>
         ) : null}
 
-        {formats.length || replySpeed ? (
+        {formats.length ? (
           <div className="mt-auto pt-3">
             <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-t border-black/5 pt-2.5 text-[11px] font-medium text-black/50">
-              <span className="truncate">{formats.join(" · ") || "Cours particulier"}</span>
-              {replySpeed ? (
-                <span className="shrink-0 font-semibold text-[#087a5c]">{replySpeed}</span>
-              ) : null}
+              <span className="truncate">{formats.join(" · ")}</span>
             </div>
           </div>
         ) : null}

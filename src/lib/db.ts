@@ -21,7 +21,7 @@ export const LEVELS = [
 export const FORMATS = ["Face à face", "À distance"] as const;
 
 const PROFILE_COLUMNS =
-  "id, clerk_id, full_name, subject, hourly_rate, rating, review_count, role, bio, about_tutor, about_course, specialties, study_year, avatar_url, city, postal_code, latitude, longitude, teaching_formats, taught_levels, diploma_title, diploma_school, diploma_year, response_minutes, has_contact_phone, created_at";
+  "id, clerk_id, full_name, subject, hourly_rate, rating, review_count, role, bio, about_tutor, about_course, specialties, study_year, avatar_url, city, postal_code, latitude, longitude, teaching_formats, taught_levels, diploma_title, diploma_school, diploma_year, has_contact_phone, created_at";
 
 export type Tutor = {
   id: string;
@@ -45,7 +45,6 @@ export type Tutor = {
   diplomaTitle: string;
   diplomaSchool: string;
   diplomaYear: number | null;
-  responseMinutes: number | null;
   hasContactPhone: boolean;
 };
 
@@ -232,10 +231,6 @@ function mapTutor(row: Record<string, unknown> | null): Tutor | null {
       row.diploma_year == null || !Number.isInteger(Number(row.diploma_year)) || Number(row.diploma_year) <= 0
         ? null
         : Number(row.diploma_year),
-    responseMinutes:
-      row.response_minutes == null || !Number.isFinite(Number(row.response_minutes))
-        ? null
-        : Number(row.response_minutes),
     hasContactPhone: Boolean(row.has_contact_phone),
   };
 }

@@ -24,7 +24,7 @@ export default function Page() {
         <strong className="font-semibold text-black">Finalités, notifications et modération</strong>
         <br />
         Ces informations servent à afficher les annonces, permettre la messagerie entre membres,
-        calculer la note moyenne et le délai de réponse, envoyer des notifications par e-mail lors de
+        calculer la note moyenne, envoyer des notifications par e-mail lors de
         nouveaux messages (désactivables depuis la page{" "}
         <Link href="/compte" className="font-semibold text-[#0d9f7a] underline">
           Compte

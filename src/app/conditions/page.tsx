@@ -34,8 +34,8 @@ export default function Page() {
         réponse restent visibles sur la fiche.
       </p>
       <p>
-        Le délai de réponse affiché correspond au temps médian entre le premier message reçu et la
-        première réponse du professeur.
+        Chaque professeur s’engage à publier des informations exactes et à répondre avec sérieux
+        aux demandes des familles.
       </p>
       <p>
         <strong className="font-semibold text-black">Signalement et modération</strong>

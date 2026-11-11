@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useEffect, useRef, useState } from "react";
 import BackLink from "@/components/site/BackLink";
 import PhotoCropper, { photoFileError } from "@/components/site/PhotoCropper";
-import { firstName, formatRate, Portrait } from "@/components/site/TutorCard";
+import TutorCard, { Portrait, formatRate } from "@/components/site/TutorCard";
 import { useRequireUser } from "@/components/site/useRequireUser";
 import { LEVEL_GROUPS, fold } from "@/components/site/filters";
 import {
@@ -17,24 +18,35 @@ import {
   replyToReview,
   resetAnnouncement,
   ROLES,
+  saveAccountIdentity,
   saveAnnouncement,
   setActiveRole,
   SPECIALTIES,
   uploadAnnouncementPhoto,
   type Review,
+  type Tutor,
 } from "@/lib/db";
-import { diplomaPayload } from "@/lib/trust";
+import { diplomaLine, diplomaPayload } from "@/lib/trust";
 import { resolveLocationQuery, suggestLocations, type ResolvedPlace } from "@/lib/locations";
 
 const LEVEL_OPTIONS = ["Primaire", "Secondaire", "Supérieur", "Formation pour adultes"] as const;
+const RATE_PRESETS = [15, 25, 35, 45, 60] as const;
+
+const FORMAT_DETAILS: Record<string, string> = {
+  "Face à face": "En présentiel chez toi ou chez l’élève",
+  "À distance": "En visioconférence avec partage d’écran",
+};
 
 const field =
-  "w-full rounded-2xl border border-black/10 bg-[#f6f7f8] px-4 py-3 outline-none focus:border-[#12382c] focus:bg-white";
+  "w-full rounded-2xl border border-black/10 bg-[#f6f7f8] px-4 py-3 text-sm text-[#0f1c1a] placeholder:text-black/35 outline-none transition focus:border-[#12382c] focus:bg-white focus:ring-2 focus:ring-[#12382c]/10";
 
 export default function AnnouncementForm() {
   const ready = useRequireUser();
   const { userId } = useAuth();
   const { user } = useUser();
+
+  const [firstNameValue, setFirstNameValue] = useState("");
+  const [lastNameValue, setLastNameValue] = useState("");
   const [bio, setBio] = useState("");
   const [aboutTutor, setAboutTutor] = useState("");
   const [aboutCourse, setAboutCourse] = useState("");
@@ -42,44 +54,72 @@ export default function AnnouncementForm() {
   const [diplomaSchool, setDiplomaSchool] = useState("");
   const [diplomaYear, setDiplomaYear] = useState("");
   const [profileId, setProfileId] = useState<string | null>(null);
+  const [rating, setRating] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [savingReplyId, setSavingReplyId] = useState<string | null>(null);
+
   const [rate, setRate] = useState(25);
   const [city, setCity] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [place, setPlace] = useState<ResolvedPlace | null>(null);
   const [placeOpen, setPlaceOpen] = useState(false);
   const placeRoot = useRef<HTMLDivElement>(null);
+
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [formats, setFormats] = useState<string[]>([]);
   const [levels, setLevels] = useState<string[]>([]);
+
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [cropFile, setCropFile] = useState<File | null>(null);
+
   const [published, setPublished] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
-    fetchMyTutorProfile(userId).then((profile) => {
-      if (!profile) return;
+    let cancelled = false;
+    Promise.all([
+      fetchMyTutorProfile(userId),
+      fetchAccountIdentity(userId).catch(() => null),
+    ]).then(([profile, identity]) => {
+      if (cancelled) return;
+      const fallbackParts = (profile?.name || user?.fullName || "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+      const fallbackFirst = user?.firstName?.trim() || fallbackParts[0] || "";
+      const fallbackLast = user?.lastName?.trim() || fallbackParts.slice(1).join(" ") || "";
+
+      setFirstNameValue(identity?.firstName || fallbackFirst);
+      setLastNameValue(identity?.lastName || fallbackLast);
+
+      if (!profile) {
+        if (identity?.city) {
+          setCity(identity.city);
+          setPlace(resolveLocationQuery(identity.city));
+        }
+        return;
+      }
+
+      setProfileId(profile.id);
+      setRating(profile.rating);
+      setReviewCount(profile.reviewCount);
       setBio(profile.bio);
       setAboutTutor(profile.aboutTutor);
       setAboutCourse(profile.aboutCourse);
       setDiplomaTitle(profile.diplomaTitle);
       setDiplomaSchool(profile.diplomaSchool);
       setDiplomaYear(profile.diplomaYear ? String(profile.diplomaYear) : "");
-      setProfileId(profile.id);
-      fetchReviews(profile.id)
-        .then((rows) => {
-          setReviews(rows);
-          setReplyDrafts(Object.fromEntries(rows.map((row) => [row.id, row.reply])));
-        })
-        .catch(() => setReviews([]));
       setRate(profile.hourlyRate || 25);
-      setCity(profile.city || "");
+
+      const initialCity = profile.city || identity?.city || "";
+      setCity(initialCity);
       if (profile.city && profile.latitude != null && profile.longitude != null) {
         setPlace({
           name: profile.city,
@@ -88,22 +128,39 @@ export default function AnnouncementForm() {
           longitude: profile.longitude,
         });
       } else {
-        setPlace(resolveLocationQuery(profile.city || ""));
+        setPlace(resolveLocationQuery(initialCity));
       }
-      setSpecialties(profile.specialties.filter((item) => item.trim().toLowerCase() !== "matière"));
+
+      setSpecialties(
+        profile.specialties.filter((item) => item.trim().toLowerCase() !== "matière")
+      );
       setFormats(normalizeFormats(profile.teachingFormats));
       setLevels(coarseLevels(profile.taughtLevels));
       setPhotoUrl(profile.avatarUrl);
       setPublished(announcementPublished(profile));
+
+      fetchReviews(profile.id)
+        .then((rows) => {
+          if (cancelled) return;
+          setReviews(rows);
+          setReplyDrafts(Object.fromEntries(rows.map((row) => [row.id, row.reply])));
+        })
+        .catch(() => {
+          if (!cancelled) setReviews([]);
+        });
+
       if (profile.hasContactPhone) {
         fetchTutorContactPhone(profile.id)
           .then((phone) => {
-            if (phone) setContactPhone(phone);
+            if (!cancelled && phone) setContactPhone(phone);
           })
           .catch(() => undefined);
       }
     });
-  }, [userId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, user?.firstName, user?.lastName, user?.fullName]);
 
   useEffect(() => {
     if (!placeOpen) return;
@@ -122,9 +179,9 @@ export default function AnnouncementForm() {
 
   function pickPhoto(file: File | undefined) {
     if (!file) return;
-    const message = photoFileError(file);
-    if (message) {
-      setError(message);
+    const issue = photoFileError(file);
+    if (issue) {
+      setError(issue);
       return;
     }
     setError("");
@@ -140,62 +197,84 @@ export default function AnnouncementForm() {
     });
   }
 
+  const shownPhoto = photoUrl || (user?.hasImage ? user.imageUrl : null);
+  const fullName = [firstNameValue.trim(), lastNameValue.trim()].filter(Boolean).join(" ").trim();
+  const resolvedPlace = place ?? resolveLocationQuery(city);
+  const parsedDiploma = diplomaPayload(diplomaTitle, diplomaSchool, diplomaYear, true);
+  const diplomaValid = !("error" in parsedDiploma);
+  const diplomaPreview = diplomaLine({
+    diplomaTitle: diplomaTitle.trim(),
+    diplomaSchool: diplomaSchool.trim(),
+    diplomaYear: diplomaYear.trim() ? Number(diplomaYear) : null,
+  });
+
+  const bioWords = countWords(bio);
+  const aboutTutorWords = countWords(aboutTutor);
+  const aboutCourseWords = countWords(aboutCourse);
+
+  const accountPhone =
+    (typeof user?.unsafeMetadata?.phone === "string" ? user.unsafeMetadata.phone.trim() : "") ||
+    user?.primaryPhoneNumber?.phoneNumber ||
+    "";
+
+  const step1Done = Boolean(
+    (photoFile || shownPhoto) && firstNameValue.trim() && lastNameValue.trim() && resolvedPlace
+  );
+  const step2Done = Boolean(specialties.length && levels.length && formats.length);
+  const step3Done = Boolean(bio.trim() && bioWords <= 24);
+  const step4Done = Boolean(aboutTutor.trim() && aboutTutorWords <= 80 && diplomaValid);
+  const step5Done = Boolean(aboutCourse.trim() && aboutCourseWords <= 80);
+  const step6Done = Boolean(Number.isFinite(rate) && rate >= 5 && rate <= 150);
+
+  const checks = [
+    { id: "section-1", label: "Photo, identité & commune", done: step1Done },
+    { id: "section-2", label: "Matières, public & format", done: step2Done },
+    { id: "section-3", label: "Accroche", done: step3Done },
+    { id: "section-4", label: "Parcours & diplôme", done: step4Done },
+    { id: "section-5", label: "Déroulement du cours", done: step5Done },
+    { id: "section-6", label: "Tarif horaire", done: step6Done },
+  ];
+  const completedCount = checks.filter((item) => item.done).length;
+
+  const previewTutor: Tutor = {
+    id: profileId || "preview",
+    clerkId: userId ?? null,
+    name: fullName || user?.fullName || "Ton prénom",
+    subject: specialties[0] || "Matière",
+    specialties,
+    bio: bio.trim(),
+    aboutTutor: aboutTutor.trim(),
+    aboutCourse: aboutCourse.trim(),
+    hourlyRate: rate,
+    rating,
+    reviewCount,
+    avatarUrl: shownPhoto,
+    city: resolvedPlace?.name || city.trim() || "Commune",
+    postalCode: resolvedPlace?.postalCode || null,
+    latitude: resolvedPlace?.latitude ?? null,
+    longitude: resolvedPlace?.longitude ?? null,
+    teachingFormats: formats,
+    taughtLevels: levels,
+    diplomaTitle: diplomaTitle.trim(),
+    diplomaSchool: diplomaSchool.trim(),
+    diplomaYear: diplomaYear.trim() ? Number(diplomaYear) : null,
+    hasContactPhone: Boolean(contactPhone.trim()),
+  };
+
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!userId) return;
-    const resolvedPhoto = photoUrl || (user?.hasImage ? user.imageUrl : null);
-    if (!photoFile && !resolvedPhoto) {
+
+    if (!photoFile && !shownPhoto) {
       setError("Ajoute une photo de profil avant de publier.");
       return;
     }
-    const resolved = place ?? resolveLocationQuery(city);
-    if (!city.trim() || !resolved) {
-      setError("Choisis ta commune dans la liste.");
+    if (!firstNameValue.trim() || !lastNameValue.trim()) {
+      setError("Renseigne ton prénom et ton nom.");
       return;
     }
-    if (!bio.trim()) {
-      setError("Rédige ton accroche.");
-      return;
-    }
-    if (countWords(bio) > 24) {
-      setError("L’accroche ne doit pas dépasser 24 mots.");
-      return;
-    }
-    if (!aboutTutor.trim()) {
-      setError("Remplis la section « À propos de toi ».");
-      return;
-    }
-    if (countWords(aboutTutor) > 80) {
-      setError("La section « À propos de toi » ne doit pas dépasser 80 mots.");
-      return;
-    }
-    const diploma = diplomaPayload(diplomaTitle, diplomaSchool, diplomaYear, true);
-    if ("error" in diploma) {
-      setError(diploma.error ?? "Diplôme invalide.");
-      return;
-    }
-    if (!aboutCourse.trim()) {
-      setError("Remplis la section « À propos du cours ».");
-      return;
-    }
-    if (countWords(aboutCourse) > 80) {
-      setError("La section « À propos du cours » ne doit pas dépasser 80 mots.");
-      return;
-    }
-    if (!specialties.length) {
-      setError("Choisis au moins une matière.");
-      return;
-    }
-    if (!levels.length) {
-      setError("Choisis au moins un niveau enseigné.");
-      return;
-    }
-    if (!formats.length) {
-      setError("Choisis au moins un format de cours.");
-      return;
-    }
-    if (!Number.isFinite(rate) || rate < 5 || rate > 150) {
-      setError("Le tarif horaire doit être compris entre 5 € et 150 €.");
+    if (!city.trim() || !resolvedPlace) {
+      setError("Choisis ta commune dans la liste déroulante.");
       return;
     }
     const cleanPhone = contactPhone.trim();
@@ -203,42 +282,96 @@ export default function AnnouncementForm() {
       setError("Le numéro de téléphone semble incomplet.");
       return;
     }
+    if (!specialties.length) {
+      setError("Choisis au moins une matière.");
+      return;
+    }
+    if (!levels.length) {
+      setError("Choisis au moins un public.");
+      return;
+    }
+    if (!formats.length) {
+      setError("Choisis au moins un format de cours.");
+      return;
+    }
+    if (!bio.trim()) {
+      setError("Rédige ton accroche.");
+      return;
+    }
+    if (bioWords > 24) {
+      setError("L’accroche ne doit pas dépasser 24 mots.");
+      return;
+    }
+    if (!aboutTutor.trim()) {
+      setError("Remplis la section « À propos de toi ».");
+      return;
+    }
+    if (aboutTutorWords > 80) {
+      setError("La section « À propos de toi » ne doit pas dépasser 80 mots.");
+      return;
+    }
+    if ("error" in parsedDiploma) {
+      setError(parsedDiploma.error ?? "Complète les champs du diplôme.");
+      return;
+    }
+    if (!aboutCourse.trim()) {
+      setError("Remplis la section « À propos du cours ».");
+      return;
+    }
+    if (aboutCourseWords > 80) {
+      setError("La section « À propos du cours » ne doit pas dépasser 80 mots.");
+      return;
+    }
+    if (!Number.isFinite(rate) || rate < 5 || rate > 150) {
+      setError("Le tarif horaire doit être compris entre 5 € et 150 €.");
+      return;
+    }
+
     setSaving(true);
     setError("");
     setMessage("");
     try {
-      let fullName = user?.fullName?.trim() || "";
-      if (!fullName) {
-        const identity = await fetchAccountIdentity(userId).catch(() => null);
-        fullName = [identity?.firstName, identity?.lastName].filter(Boolean).join(" ").trim();
-      }
-      const avatarUrl = photoFile
-        ? await uploadAnnouncementPhoto(userId, photoFile)
-        : resolvedPhoto;
+      await saveAccountIdentity({
+        clerkId: userId,
+        firstName: firstNameValue.trim(),
+        lastName: lastNameValue.trim(),
+      }).catch(() => undefined);
+
+      const avatarUrl = photoFile ? await uploadAnnouncementPhoto(userId, photoFile) : shownPhoto;
+
       await saveAnnouncement(userId, {
-        fullName: fullName || "Tuteur",
+        fullName,
         bio: bio.trim(),
         aboutTutor: aboutTutor.trim(),
         aboutCourse: aboutCourse.trim(),
         specialties,
         hourlyRate: rate,
-        city: resolved?.name || city,
-        postalCode: resolved?.postalCode || null,
-        latitude: resolved?.latitude ?? null,
-        longitude: resolved?.longitude ?? null,
+        city: resolvedPlace.name,
+        postalCode: resolvedPlace.postalCode || null,
+        latitude: resolvedPlace.latitude ?? null,
+        longitude: resolvedPlace.longitude ?? null,
         teachingFormats: formats,
         taughtLevels: levels,
-        diplomaTitle: diploma.diplomaTitle,
-        diplomaSchool: diploma.diplomaSchool,
-        diplomaYear: diploma.diplomaYear,
+        diplomaTitle: parsedDiploma.diplomaTitle,
+        diplomaSchool: parsedDiploma.diplomaSchool,
+        diplomaYear: parsedDiploma.diplomaYear,
         contactPhone: cleanPhone || null,
         avatarUrl,
       });
-      await setActiveRole(userId, ROLES.TUTOR, fullName || user?.fullName);
+
+      await setActiveRole(userId, ROLES.TUTOR, fullName);
+      const updatedProfile = await fetchMyTutorProfile(userId).catch(() => null);
+      if (updatedProfile) setProfileId(updatedProfile.id);
+
       setPhotoFile(null);
       if (avatarUrl) setPhotoUrl(avatarUrl);
       setPublished(true);
-      setMessage("Annonce en ligne. Elle apparaît chez les professeurs disponibles.");
+      setConfirmRemove(false);
+      setMessage(
+        published
+          ? "Modifications enregistrées. Ta fiche publique est à jour."
+          : "Annonce publiée. Elle apparaît maintenant chez les professeurs disponibles."
+      );
       window.dispatchEvent(new Event("clutch-announcement"));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Enregistrement impossible.");
@@ -262,7 +395,8 @@ export default function AnnouncementForm() {
       setAboutCourse("");
       setContactPhone("");
       setPublished(false);
-      setMessage("Annonce retirée. Elle n’apparaît plus dans la liste.");
+      setConfirmRemove(false);
+      setMessage("Annonce retirée. Elle n’apparaît plus dans les recherches.");
       window.dispatchEvent(new Event("clutch-announcement"));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Suppression impossible.");
@@ -280,111 +414,176 @@ export default function AnnouncementForm() {
     );
   }
 
-  const name = user?.fullName || "Toi";
-  const shownPhoto = photoUrl || (user?.hasImage ? user.imageUrl : null);
-  const accountPhone =
-    (typeof user?.unsafeMetadata?.phone === "string" ? user.unsafeMetadata.phone.trim() : "") ||
-    user?.primaryPhoneNumber?.phoneNumber ||
-    "";
-
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <BackLink />
-      <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
+
+      <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-extrabold tracking-[0.16em] text-[#087a5c] uppercase">Annonce</p>
-          <h1 className="mt-1 font-display text-3xl font-bold">
-            {published ? "Mon annonce" : "Publie ton annonce"}
+          <p className="text-xs font-extrabold tracking-[0.16em] text-[#087a5c] uppercase">
+            Espace professeur
+          </p>
+          <h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-[#0f1c1a] sm:text-4xl">
+            {published ? "Gérer mon annonce" : "Créer mon annonce"}
           </h1>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-black/55">
-            Photo, accroche, méthode. C’est la fiche que les élèves lisent avant de t’écrire.
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-black/55">
+            Renseigne chaque rubrique telle qu’elle apparaîtra sur ta fiche publique. Un profil complet
+            inspire confiance aux parents et étudiants dès le premier regard.
           </p>
         </div>
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-extrabold ${
-            published ? "bg-[#e7f6f1] text-[#087a5c]" : "bg-white text-black/45"
-          }`}
-        >
-          {published ? "En ligne" : "Pas encore publiée"}
-        </span>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span
+            className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-extrabold ${
+              published
+                ? "bg-[#e7f6f1] text-[#087a5c]"
+                : "bg-white text-black/55 ring-1 ring-black/10"
+            }`}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${published ? "bg-[#0d9f7a]" : "bg-black/25"}`}
+            />
+            {published ? "En ligne" : "Brouillon"}
+          </span>
+          {published && profileId ? (
+            <Link
+              href={`/tuteur/${profileId}`}
+              className="rounded-full bg-white px-4 py-1.5 text-xs font-extrabold text-[#12382c] ring-1 ring-black/10 transition hover:bg-[#f6f7f8]"
+            >
+              Voir ma fiche publique →
+            </Link>
+          ) : null}
+        </div>
       </div>
 
-      <form onSubmit={onSubmit} className="mt-6 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="space-y-4">
+      <form
+        onSubmit={onSubmit}
+        className="mt-7 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]"
+      >
+        <div className="space-y-5">
           <Section
+            id="section-1"
             step="1"
-            title="Photo et ville"
-            hint="Un portrait lumineux, toi seul, le visage dégagé. La ville sert aux élèves près de chez toi."
+            done={step1Done}
+            title="Identité, photo & localisation"
+            hint="Un portrait lumineux où l’on voit clairement ton visage, ton nom et ta commune en Belgique."
           >
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-              <label className="relative h-36 w-36 shrink-0 cursor-pointer">
-                <Portrait
-                  name={name}
-                  url={shownPhoto}
-                  className="h-36 w-36 rounded-3xl object-cover"
-                />
-                <span className="absolute inset-x-2 bottom-2 rounded-full bg-white/95 py-1 text-center text-xs font-extrabold shadow-sm">
-                  Changer
-                </span>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="sr-only"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    event.target.value = "";
-                    pickPhoto(file);
-                  }}
-                />
-              </label>
-              <div ref={placeRoot} className="relative min-w-0 flex-1 text-sm">
-                <span className="font-semibold text-black/70">Commune</span>
-                <input
-                  value={city}
-                  onChange={(event) => {
-                    setCity(event.target.value);
-                    setPlace(null);
-                    setPlaceOpen(true);
-                  }}
-                  onFocus={() => setPlaceOpen(true)}
-                  placeholder="Commune ou code postal"
-                  className={`${field} mt-2`}
-                  autoComplete="off"
-                />
-                {place?.postalCode ? (
-                  <p className="mt-2 text-xs font-semibold text-[#087a5c]">{place.postalCode}</p>
-                ) : null}
-                {places.length ? (
-                  <div className="absolute top-[calc(100%+8px)] right-0 left-0 z-30 overflow-hidden rounded-2xl bg-white py-1 shadow-[0_18px_50px_rgba(15,28,26,0.14)] ring-1 ring-black/5">
-                    {places.map((item) => (
-                      <button
-                        key={`${item.postalCode}-${item.name}`}
-                        type="button"
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => {
-                          setCity(item.name);
-                          setPlace(item);
-                          setPlaceOpen(false);
-                        }}
-                        className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm hover:bg-[#f3f7f5]"
-                      >
-                        <span className="font-semibold">{item.name}</span>
-                        <span className="text-black/45">{item.postalCode}</span>
-                      </button>
-                    ))}
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+              <div className="flex flex-col items-center sm:items-start">
+                <label className="group relative block h-32 w-32 shrink-0 cursor-pointer overflow-hidden rounded-3xl ring-1 ring-black/10">
+                  <Portrait
+                    name={fullName || "Toi"}
+                    url={shownPhoto}
+                    className="h-32 w-32 rounded-3xl object-cover transition group-hover:scale-[1.03]"
+                  />
+                  <span className="absolute inset-x-2 bottom-2 rounded-full bg-white/95 py-1 text-center text-[11px] font-extrabold text-[#0f1c1a] shadow-sm transition group-hover:bg-white">
+                    {shownPhoto ? "Changer" : "Ajouter"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = "";
+                      pickPhoto(file);
+                    }}
+                  />
+                </label>
+                <p className="mt-2 text-[11px] font-medium text-black/45">
+                  JPG, PNG ou WebP
+                </p>
+              </div>
+
+              <div className="min-w-0 flex-1 space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="text-xs font-extrabold tracking-wide text-black/55 uppercase">
+                      Prénom *
+                    </span>
+                    <input
+                      value={firstNameValue}
+                      onChange={(event) => setFirstNameValue(event.target.value)}
+                      placeholder="Ex. Camille"
+                      className={`${field} mt-1.5`}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-extrabold tracking-wide text-black/55 uppercase">
+                      Nom *
+                    </span>
+                    <input
+                      value={lastNameValue}
+                      onChange={(event) => setLastNameValue(event.target.value)}
+                      placeholder="Ex. Verhoeven"
+                      className={`${field} mt-1.5`}
+                    />
+                  </label>
+                </div>
+
+                <div ref={placeRoot} className="relative">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-extrabold tracking-wide text-black/55 uppercase">
+                      Commune *
+                    </span>
+                    {resolvedPlace?.postalCode ? (
+                      <span className="rounded-full bg-[#e7f6f1] px-2.5 py-0.5 text-[11px] font-bold text-[#087a5c]">
+                        {resolvedPlace.name} ({resolvedPlace.postalCode})
+                      </span>
+                    ) : null}
                   </div>
-                ) : placeOpen && city.trim().length >= 2 ? (
-                  <p className="absolute top-[calc(100%+8px)] right-0 left-0 z-30 rounded-2xl bg-white px-4 py-3 text-sm text-black/50 shadow-[0_18px_50px_rgba(15,28,26,0.14)] ring-1 ring-black/5">
-                    Aucune commune ne correspond.
-                  </p>
-                ) : null}
+                  <input
+                    value={city}
+                    onChange={(event) => {
+                      setCity(event.target.value);
+                      setPlace(null);
+                      setPlaceOpen(true);
+                    }}
+                    onFocus={() => setPlaceOpen(true)}
+                    placeholder="Tape ta commune ou ton code postal (ex. 1348, Ixelles…)"
+                    className={`${field} mt-1.5`}
+                    autoComplete="off"
+                  />
+                  {places.length ? (
+                    <div className="absolute top-[calc(100%+6px)] right-0 left-0 z-30 overflow-hidden rounded-2xl bg-white py-1 shadow-[0_18px_50px_rgba(15,28,26,0.14)] ring-1 ring-black/5">
+                      {places.map((item) => (
+                        <button
+                          key={`${item.postalCode}-${item.name}`}
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => {
+                            setCity(item.name);
+                            setPlace(item);
+                            setPlaceOpen(false);
+                          }}
+                          className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition hover:bg-[#f3f7f5]"
+                        >
+                          <span className="font-semibold text-[#0f1c1a]">{item.name}</span>
+                          <span className="text-xs font-semibold text-black/45">
+                            {item.postalCode}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : placeOpen && city.trim().length >= 2 ? (
+                    <p className="absolute top-[calc(100%+6px)] right-0 left-0 z-30 rounded-2xl bg-white px-4 py-3 text-sm text-black/50 shadow-[0_18px_50px_rgba(15,28,26,0.14)] ring-1 ring-black/5">
+                      Aucune commune belge ne correspond.
+                    </p>
+                  ) : null}
+                </div>
               </div>
             </div>
-            <div className="mt-5 border-t border-black/5 pt-4 text-sm">
+
+            <div className="mt-5 border-t border-black/5 pt-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-semibold text-black/70">
-                  Téléphone affiché sur l’annonce (facultatif)
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-extrabold tracking-wide text-black/55 uppercase">
+                    Téléphone de contact
+                  </span>
+                  <span className="rounded-full bg-[#f6f7f8] px-2.5 py-0.5 text-[11px] font-semibold text-black/45">
+                    Facultatif
+                  </span>
+                </div>
                 {accountPhone && contactPhone !== accountPhone ? (
                   <button
                     type="button"
@@ -403,84 +602,82 @@ export default function AnnouncementForm() {
                 placeholder="ex. +32 470 12 34 56"
                 className={`${field} mt-2`}
               />
-              <p className="mt-2 text-xs leading-5 text-black/50">
-                Facultatif. Ce numéro reste masqué pour les visiteurs et n’est visible que par les
-                utilisateurs connectés avec un compte.
+              <p className="mt-2 text-xs leading-5 text-black/45">
+                Ton numéro est masqué pour les visiteurs non connectés et visible uniquement par les
+                parents et élèves inscrits.
               </p>
             </div>
           </Section>
 
           <Section
+            id="section-2"
             step="2"
-            title="Accroche"
-            hint="La phrase sous ta photo. Dis ce que tu enseignes, pour qui, et ce qui te distingue."
+            done={step2Done}
+            title="Matières, public & format"
+            hint="Indique exactement ce que tu enseignes, à qui s’adressent tes cours et comment ils se déroulent."
           >
-            <CountedText
-              value={bio}
-              max={24}
-              rows={3}
-              onChange={setBio}
-              placeholder="Étudiant en maths, je prépare le secondaire aux contrôles, à Wavre ou en visio."
-            />
-          </Section>
-
-          <Section
-            step="3"
-            title="À propos de toi"
-            hint="Diplômes, années de pratique, élèves déjà suivis. Écris à la première personne."
-          >
-            <CountedText value={aboutTutor} max={80} rows={5} onChange={setAboutTutor} />
-            <div className="mt-4 grid gap-2 sm:grid-cols-3">
-              <input
-                value={diplomaTitle}
-                onChange={(event) => setDiplomaTitle(event.target.value)}
-                placeholder="Intitulé du diplôme"
-                className={field}
-              />
-              <input
-                value={diplomaSchool}
-                onChange={(event) => setDiplomaSchool(event.target.value)}
-                placeholder="Établissement"
-                className={field}
-              />
-              <input
-                value={diplomaYear}
-                onChange={(event) => setDiplomaYear(event.target.value.replace(/\D/g, "").slice(0, 4))}
-                inputMode="numeric"
-                placeholder="Année"
-                className={field}
-              />
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-extrabold tracking-wide text-black/55 uppercase">
+                  Matières enseignées *
+                </p>
+                {specialties.length ? (
+                  <span className="text-xs font-bold text-[#087a5c]">
+                    {specialties.length} choisie{specialties.length > 1 ? "s" : ""}
+                  </span>
+                ) : null}
+              </div>
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                {SPECIALTIES.map((option) => {
+                  const on = specialties.includes(option);
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => toggle(specialties, option, setSpecialties)}
+                      className={`rounded-full px-3.5 py-2 text-sm font-semibold transition ${
+                        on
+                          ? "bg-[#12382c] text-white shadow-sm"
+                          : "bg-[#f6f7f8] text-black/70 hover:bg-[#eceff1]"
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </Section>
 
-          <Section
-            step="4"
-            title="À propos du cours"
-            hint="Le déroulement d’une séance : par où tu commences, comment tu fais travailler, ce que l’élève repart avec."
-          >
-            <CountedText value={aboutCourse} max={80} rows={5} onChange={setAboutCourse} />
-          </Section>
+            <div className="mt-6 border-t border-black/5 pt-5">
+              <p className="text-xs font-extrabold tracking-wide text-black/55 uppercase">
+                Public *
+              </p>
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                {LEVEL_OPTIONS.map((option) => {
+                  const on = levels.includes(option);
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => toggle(levels, option, setLevels)}
+                      className={`rounded-full px-3.5 py-2 text-sm font-semibold transition ${
+                        on
+                          ? "bg-[#12382c] text-white shadow-sm"
+                          : "bg-[#f6f7f8] text-black/70 hover:bg-[#eceff1]"
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-          <Section
-            step="5"
-            title="Matières, niveaux, format"
-            hint="Choisis au moins une matière, un niveau et un format. Toutes les sections (sauf le téléphone) sont obligatoires."
-          >
-            <Picker
-              title="Matières"
-              options={[...SPECIALTIES]}
-              selected={specialties}
-              onToggle={(value) => toggle(specialties, value, setSpecialties)}
-            />
-            <Picker
-              title="Niveaux"
-              options={[...LEVEL_OPTIONS]}
-              selected={levels}
-              onToggle={(value) => toggle(levels, value, setLevels)}
-            />
-            <div className="mt-4">
-              <p className="text-sm font-semibold text-black/70">Format</p>
-              <div className="mt-2 grid grid-cols-2 gap-2">
+            <div className="mt-6 border-t border-black/5 pt-5">
+              <p className="text-xs font-extrabold tracking-wide text-black/55 uppercase">
+                Format *
+              </p>
+              <div className="mt-2.5 grid gap-3 sm:grid-cols-2">
                 {FORMATS.map((format) => {
                   const on = formats.includes(format);
                   return (
@@ -488,13 +685,25 @@ export default function AnnouncementForm() {
                       key={format}
                       type="button"
                       onClick={() => toggle(formats, format, setFormats)}
-                      className={`rounded-2xl border px-4 py-3 text-sm font-extrabold ${
+                      className={`rounded-2xl border p-4 text-left transition ${
                         on
-                          ? "border-[#12382c] bg-[#12382c] text-white"
-                          : "border-black/10 bg-[#f6f7f8] text-black/70"
+                          ? "border-[#12382c] bg-[#12382c] text-white shadow-sm"
+                          : "border-black/10 bg-[#f6f7f8] text-[#0f1c1a] hover:border-black/20"
                       }`}
                     >
-                      {format}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-extrabold">{format}</span>
+                        <span
+                          className={`grid h-5 w-5 place-items-center rounded-full text-xs font-bold ${
+                            on ? "bg-white/20 text-white" : "border border-black/15 bg-white text-transparent"
+                          }`}
+                        >
+                          ✓
+                        </span>
+                      </div>
+                      <p className={`mt-1 text-xs leading-5 ${on ? "text-white/75" : "text-black/50"}`}>
+                        {FORMAT_DETAILS[format] || ""}
+                      </p>
                     </button>
                   );
                 })}
@@ -502,106 +711,324 @@ export default function AnnouncementForm() {
             </div>
           </Section>
 
-          <Section step="6" title="Tarif" hint="Un tarif horaire, affiché tel quel sur ta fiche.">
-            <div className="flex items-end justify-between gap-4">
-              <p className="font-display text-4xl font-bold text-[#0d9f7a]">
-                {rate}
-                <span className="ml-1 text-base font-semibold text-black/45">€/h</span>
-              </p>
-              <label className="text-sm font-semibold text-black/55">
-                <span className="sr-only">Tarif horaire</span>
-                <input
-                  type="number"
-                  min={5}
-                  max={150}
-                  value={rate}
-                  onChange={(event) => setRate(Math.max(0, Number(event.target.value) || 0))}
-                  className="w-24 rounded-xl border border-black/10 bg-[#f6f7f8] px-3 py-2 text-right outline-none focus:border-[#12382c]"
-                />
-              </label>
+          <Section
+            id="section-3"
+            step="3"
+            done={step3Done}
+            title="Ton accroche"
+            hint="Affichée tout en haut de ta fiche publique. Résume qui tu es, ce que tu enseignes et pour qui."
+          >
+            <CountedText
+              value={bio}
+              max={24}
+              rows={3}
+              onChange={setBio}
+              placeholder="Ex. Ingénieur civil à Louvain-la-Neuve, j’aide le secondaire et le supérieur en maths et physique."
+            />
+          </Section>
+
+          <Section
+            id="section-4"
+            step="4"
+            done={step4Done}
+            title="À propos de toi & diplôme"
+            hint="Parle à la première personne de ton parcours, puis renseigne ton diplôme ou cursus principal."
+          >
+            <CountedText
+              value={aboutTutor}
+              max={80}
+              rows={5}
+              onChange={setAboutTutor}
+              placeholder="Ex. Diplômé en sciences mathématiques avec 5 ans d’expérience, j’accompagne des élèves du secondaire et de 1re bac…"
+            />
+
+            <div className="mt-5 rounded-2xl border border-black/5 bg-[#f6f7f8] p-4 sm:p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-extrabold tracking-wide text-black/55 uppercase">
+                  Formation / Diplôme principal *
+                </p>
+                {diplomaPreview ? (
+                  <span className="rounded-full bg-white px-3 py-0.5 text-xs font-semibold text-[#087a5c] ring-1 ring-black/5">
+                    {diplomaPreview}
+                  </span>
+                ) : null}
+              </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <label className="block sm:col-span-1">
+                  <span className="text-[11px] font-bold text-black/50">Intitulé *</span>
+                  <input
+                    value={diplomaTitle}
+                    onChange={(event) => setDiplomaTitle(event.target.value)}
+                    placeholder="Ex. Master en mathématiques"
+                    className={`${field} mt-1 bg-white`}
+                  />
+                </label>
+                <label className="block sm:col-span-1">
+                  <span className="text-[11px] font-bold text-black/50">Établissement *</span>
+                  <input
+                    value={diplomaSchool}
+                    onChange={(event) => setDiplomaSchool(event.target.value)}
+                    placeholder="Ex. UCLouvain"
+                    className={`${field} mt-1 bg-white`}
+                  />
+                </label>
+                <label className="block sm:col-span-1">
+                  <span className="text-[11px] font-bold text-black/50">Année d’obtention *</span>
+                  <input
+                    value={diplomaYear}
+                    onChange={(event) =>
+                      setDiplomaYear(event.target.value.replace(/\D/g, "").slice(0, 4))
+                    }
+                    inputMode="numeric"
+                    placeholder="Ex. 2023"
+                    className={`${field} mt-1 bg-white`}
+                  />
+                </label>
+              </div>
             </div>
+          </Section>
+
+          <Section
+            id="section-5"
+            step="5"
+            done={step5Done}
+            title="À propos du cours"
+            hint="Explique comment se passe une séance : diagnostic de départ, travail sur exercices et ce avec quoi l’élève repart."
+          >
+            <CountedText
+              value={aboutCourse}
+              max={80}
+              rows={5}
+              onChange={setAboutCourse}
+              placeholder="Ex. Nous commençons par cibler tes blocages, puis nous résolvons ensemble des exercices types d’examen avec une fiche mémo…"
+            />
+          </Section>
+
+          <Section
+            id="section-6"
+            step="6"
+            done={step6Done}
+            title="Tarif horaire"
+            hint="Choisis ton prix par heure de cours (entre 5 € et 150 €). Affiché tel quel sur ta fiche."
+          >
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <p>
+                <span className="font-display text-4xl font-bold text-[#0f1c1a]">
+                  {formatRate(rate)} €
+                </span>
+                <span className="ml-1.5 text-sm font-semibold text-black/45">/ heure</span>
+              </p>
+
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-xs font-bold text-black/50">
+                  <span>Montant exact</span>
+                  <input
+                    type="number"
+                    min={5}
+                    max={150}
+                    value={rate || ""}
+                    onChange={(event) => setRate(Math.max(0, Number(event.target.value) || 0))}
+                    className="w-24 rounded-2xl border border-black/10 bg-[#f6f7f8] px-3 py-2 text-right text-sm font-bold text-[#0f1c1a] outline-none focus:border-[#12382c] focus:bg-white"
+                  />
+                </label>
+                <span className="text-sm font-bold text-black/45">€/h</span>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {RATE_PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setRate(preset)}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-extrabold transition ${
+                    rate === preset
+                      ? "bg-[#12382c] text-white"
+                      : "bg-[#f6f7f8] text-black/65 hover:bg-[#eceff1]"
+                  }`}
+                >
+                  {preset} €
+                </button>
+              ))}
+            </div>
+
             <input
               type="range"
-              min={10}
-              max={80}
-              value={Math.min(80, Math.max(10, rate))}
+              min={5}
+              max={150}
+              value={Math.min(150, Math.max(5, rate || 5))}
               onChange={(event) => setRate(Number(event.target.value))}
               className="mt-4 w-full accent-[#0d9f7a]"
             />
             <div className="mt-1 flex justify-between text-xs font-semibold text-black/40">
-              <span>10 €</span>
-              <span>80 €</span>
+              <span>5 €</span>
+              <span>50 €</span>
+              <span>100 €</span>
+              <span>150 €</span>
             </div>
           </Section>
         </div>
 
-        <aside className="space-y-4 lg:sticky lg:top-[calc(var(--site-header,3.5rem)+1rem)]">
-          <div className="rounded-3xl bg-white p-4 shadow-[0_8px_30px_rgba(15,28,26,0.05)]">
-            <p className="text-xs font-extrabold tracking-wide text-black/40 uppercase">Aperçu</p>
-            <div className="mt-3">
-              <Portrait name={name} url={shownPhoto} className="aspect-square h-auto w-full rounded-2xl object-cover" />
-              <div className="mt-3 flex items-baseline justify-between gap-2">
-                <p className="truncate font-display text-lg font-bold tracking-tight text-[#0f1c1a]">
-                  {firstName(name)}
-                </p>
-                <p className="shrink-0 text-base font-extrabold text-[#087a5c]">
-                  {formatRate(rate)}{" "}
-                  <span className="text-xs font-bold text-[#087a5c]/75">€/h</span>
-                </p>
-              </div>
-              <p className="mt-1 truncate text-xs font-medium text-black/55">
-                {city.trim() || "Ville à préciser"}
+        <aside className="space-y-4 lg:sticky lg:top-[calc(var(--site-header,3.5rem)+1.5rem)]">
+          <div className="rounded-3xl bg-white p-4 shadow-[0_12px_40px_rgba(15,28,26,0.07)] ring-1 ring-black/5">
+            <div className="mb-3 flex items-center justify-between gap-2 px-1">
+              <p className="text-xs font-extrabold tracking-wide text-black/45 uppercase">
+                Aperçu catalogue
               </p>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {specialties.length ? (
-                  specialties.slice(0, 2).map((item) => (
-                    <span
-                      key={item}
-                      className="max-w-full truncate rounded-lg bg-[#e7f6f1] px-2.5 py-1 text-xs font-bold text-[#087a5c]"
-                    >
-                      {item}
-                    </span>
-                  ))
-                ) : (
-                  <span className="rounded-lg bg-[#f6f7f8] px-2.5 py-1 text-xs font-semibold text-black/45">
-                    Matière à choisir
-                  </span>
-                )}
-              </div>
+              <span className="text-[11px] font-semibold text-[#087a5c]">Temps réel</span>
             </div>
+            <div className="pointer-events-none select-none">
+              <TutorCard tutor={previewTutor} isOwn />
+            </div>
+            <dl className="mt-4 space-y-2 border-t border-black/5 px-1 pt-3 text-xs">
+              <div className="flex items-start justify-between gap-3">
+                <dt className="shrink-0 text-black/45">Public</dt>
+                <dd className="text-right font-semibold text-[#0f1c1a]">
+                  {levels.join(", ") || "À choisir"}
+                </dd>
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <dt className="shrink-0 text-black/45">Format</dt>
+                <dd className="text-right font-semibold text-[#0f1c1a]">
+                  {formats.join(" · ") || "À choisir"}
+                </dd>
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <dt className="shrink-0 text-black/45">Diplôme</dt>
+                <dd className="text-right font-semibold text-[#0f1c1a]">
+                  {diplomaPreview || "À renseigner"}
+                </dd>
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <dt className="shrink-0 text-black/45">Téléphone</dt>
+                <dd className="text-right font-semibold text-[#0f1c1a]">
+                  {contactPhone.trim() || "Non renseigné"}
+                </dd>
+              </div>
+            </dl>
           </div>
 
-          {error ? <p className="text-sm text-[#c23b3b]">{error}</p> : null}
-          {message ? <p className="text-sm font-semibold text-[#087a5c]">{message}</p> : null}
+          <div className="rounded-3xl bg-white p-5 shadow-[0_8px_30px_rgba(15,28,26,0.05)] ring-1 ring-black/5">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-extrabold tracking-wide text-black/45 uppercase">
+                Complétude
+              </p>
+              <span
+                className={`rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${
+                  completedCount === checks.length
+                    ? "bg-[#e7f6f1] text-[#087a5c]"
+                    : "bg-[#f6f7f8] text-black/55"
+                }`}
+              >
+                {completedCount} / {checks.length}
+              </span>
+            </div>
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="h-12 w-full rounded-full bg-[#12382c] text-sm font-extrabold text-white disabled:opacity-60"
-          >
-            {saving ? "Enregistrement…" : published ? "Enregistrer" : "Publier l’annonce"}
-          </button>
-          {published ? (
+            <ul className="mt-3 space-y-1.5">
+              {checks.map((item) => (
+                <li key={item.id}>
+                  <a
+                    href={`#${item.id}`}
+                    className="flex items-center justify-between gap-2 rounded-xl px-2 py-1 text-xs transition hover:bg-[#f6f7f8]"
+                  >
+                    <span className={item.done ? "font-semibold text-[#0f1c1a]" : "text-black/55"}>
+                      {item.label}
+                    </span>
+                    <span
+                      className={`grid h-4 w-4 place-items-center rounded-full text-[10px] font-bold ${
+                        item.done
+                          ? "bg-[#e7f6f1] text-[#087a5c]"
+                          : "bg-black/5 text-black/30"
+                      }`}
+                    >
+                      {item.done ? "✓" : "·"}
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+
+            {error ? (
+              <p className="mt-4 rounded-2xl bg-[#fdf1f1] px-3.5 py-2.5 text-xs font-semibold text-[#c23b3b]">
+                {error}
+              </p>
+            ) : null}
+            {message ? (
+              <p className="mt-4 rounded-2xl bg-[#e7f6f1] px-3.5 py-2.5 text-xs font-semibold text-[#087a5c]">
+                {message}
+              </p>
+            ) : null}
+
             <button
-              type="button"
+              type="submit"
               disabled={saving}
-              onClick={onRemove}
-              className="h-11 w-full rounded-full text-sm font-semibold text-black/50 hover:text-[#c23b3b]"
+              className="mt-4 h-12 w-full rounded-full bg-[#12382c] text-sm font-extrabold text-white transition hover:bg-[#0d2b22] disabled:opacity-60"
             >
-              Retirer l’annonce
+              {saving
+                ? "Enregistrement…"
+                : published
+                  ? "Enregistrer les modifications"
+                  : "Publier l’annonce"}
             </button>
-          ) : null}
+
+            {published ? (
+              confirmRemove ? (
+                <div className="mt-3 rounded-2xl border border-[#c23b3b]/20 bg-[#fdf1f1] p-3 text-center">
+                  <p className="text-xs font-semibold text-[#c23b3b]">
+                    Retirer ton annonce des résultats ?
+                  </p>
+                  <div className="mt-2.5 flex gap-2">
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => setConfirmRemove(false)}
+                      className="h-9 flex-1 rounded-full bg-white text-xs font-bold text-black/70 ring-1 ring-black/10"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={onRemove}
+                      className="h-9 flex-1 rounded-full bg-[#c23b3b] text-xs font-extrabold text-white disabled:opacity-60"
+                    >
+                      Confirmer
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => setConfirmRemove(true)}
+                  className="mt-2 h-10 w-full rounded-full text-xs font-semibold text-black/50 transition hover:text-[#c23b3b]"
+                >
+                  Retirer l’annonce
+                </button>
+              )
+            ) : null}
+          </div>
         </aside>
       </form>
+
       {profileId && reviews.length ? (
-        <section className="mt-4 rounded-3xl bg-white p-5 shadow-[0_8px_30px_rgba(15,28,26,0.06)] sm:p-6">
-          <h2 className="font-extrabold">Avis</h2>
-          <p className="mt-1 text-sm text-black/50">Ta réponse apparaît sous l’avis, sur ta fiche.</p>
-          <div className="mt-4 space-y-4">
+        <section className="mt-8 rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)] sm:p-7">
+          <h2 className="font-display text-xl font-bold text-[#0f1c1a]">
+            Avis reçus ({reviews.length})
+          </h2>
+          <p className="mt-1 text-sm text-black/50">
+            Ta réponse s’affiche publiquement sous l’avis correspondant sur ta fiche.
+          </p>
+          <div className="mt-5 space-y-4">
             {reviews.map((review) => (
-              <div key={review.id} className="rounded-2xl bg-[#f6f7f8] p-4">
-                <p className="text-sm leading-6 text-black/75">
-                  <span className="text-[#e6b800]">{"★".repeat(review.rating)}</span>{" "}
+              <div key={review.id} className="rounded-2xl bg-[#f6f7f8] p-4 sm:p-5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm tracking-wide">
+                    <span className="text-[#e6b800]">{"★".repeat(review.rating)}</span>
+                    <span className="text-black/15">{"★".repeat(5 - review.rating)}</span>
+                  </span>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-black/80">
                   {review.comment || "Avis sans commentaire."}
                 </p>
                 <textarea
@@ -610,30 +1037,35 @@ export default function AnnouncementForm() {
                     setReplyDrafts((current) => ({ ...current, [review.id]: event.target.value }))
                   }
                   rows={2}
-                  placeholder="Répondre à cet avis"
+                  placeholder="Répondre à cet avis…"
                   className={`${field} mt-3 bg-white`}
                 />
                 <button
                   type="button"
-                  className="mt-2 rounded-full bg-[#12382c] px-4 py-2 text-sm font-extrabold text-white"
+                  disabled={savingReplyId === review.id}
+                  className="mt-2.5 rounded-full bg-[#12382c] px-4 py-2 text-xs font-extrabold text-white transition hover:bg-[#0d2b22] disabled:opacity-60"
                   onClick={async () => {
                     if (!userId) return;
                     setError("");
+                    setSavingReplyId(review.id);
                     try {
                       await replyToReview(review.id, userId, replyDrafts[review.id] || "");
                       setMessage("Réponse publiée sous l’avis.");
                     } catch (err) {
                       setError(err instanceof Error ? err.message : "Réponse impossible.");
+                    } finally {
+                      setSavingReplyId(null);
                     }
                   }}
                 >
-                  Publier la réponse
+                  {savingReplyId === review.id ? "Publication…" : "Publier la réponse"}
                 </button>
               </div>
             ))}
           </div>
         </section>
       ) : null}
+
       {cropFile ? (
         <PhotoCropper
           file={cropFile}
@@ -647,28 +1079,41 @@ export default function AnnouncementForm() {
 }
 
 function Section({
+  id,
   step,
+  done,
   title,
   hint,
   children,
 }: {
+  id: string;
   step: string;
+  done: boolean;
   title: string;
   hint: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-3xl bg-white p-5 shadow-[0_8px_30px_rgba(15,28,26,0.06)] sm:p-6">
-      <div className="flex items-start gap-3">
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#12382c] text-xs font-extrabold text-white">
-          {step}
-        </span>
-        <div>
-          <h2 className="font-extrabold">{title}</h2>
-          <p className="mt-1 text-sm leading-6 text-black/50">{hint}</p>
+    <section
+      id={id}
+      className="scroll-mt-[calc(var(--site-header,3.5rem)+1.5rem)] rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)] sm:p-7"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <span
+            className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-extrabold transition ${
+              done ? "bg-[#e7f6f1] text-[#087a5c]" : "bg-[#12382c] text-white"
+            }`}
+          >
+            {done ? "✓" : step}
+          </span>
+          <div>
+            <h2 className="font-display text-lg font-bold text-[#0f1c1a]">{title}</h2>
+            <p className="mt-1 text-sm leading-6 text-black/50">{hint}</p>
+          </div>
         </div>
       </div>
-      <div className="mt-4">{children}</div>
+      <div className="mt-5">{children}</div>
     </section>
   );
 }
@@ -687,6 +1132,8 @@ function CountedText({
   placeholder?: string;
 }) {
   const count = countWords(value);
+  const ratio = Math.min(100, Math.round((count / max) * 100));
+  const over = count > max;
   return (
     <div>
       <textarea
@@ -696,43 +1143,22 @@ function CountedText({
         onChange={(event) => onChange(event.target.value)}
         className={field}
       />
-      <p className={`mt-2 text-right text-xs font-semibold ${count > max ? "text-[#c23b3b]" : "text-black/40"}`}>
-        {count} / {max} mots
-      </p>
-    </div>
-  );
-}
-
-function Picker({
-  title,
-  options,
-  selected,
-  onToggle,
-}: {
-  title: string;
-  options: string[];
-  selected: string[];
-  onToggle: (value: string) => void;
-}) {
-  return (
-    <div className="mt-4 first:mt-0">
-      <p className="text-sm font-semibold text-black/70">{title}</p>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {options.map((option) => {
-          const on = selected.includes(option);
-          return (
-            <button
-              key={option}
-              type="button"
-              onClick={() => onToggle(option)}
-              className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
-                on ? "bg-[#12382c] text-white" : "bg-[#f6f7f8] text-black/70"
-              }`}
-            >
-              {option}
-            </button>
-          );
-        })}
+      <div className="mt-2.5 flex items-center justify-between gap-3">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/5">
+          <div
+            className={`h-full rounded-full transition-all ${
+              over ? "bg-[#c23b3b]" : count > 0 ? "bg-[#0d9f7a]" : "bg-transparent"
+            }`}
+            style={{ width: `${ratio}%` }}
+          />
+        </div>
+        <p
+          className={`shrink-0 text-xs font-bold ${
+            over ? "text-[#c23b3b]" : count > 0 ? "text-[#087a5c]" : "text-black/40"
+          }`}
+        >
+          {count} / {max} mots
+        </p>
       </div>
     </div>
   );
@@ -748,14 +1174,22 @@ function normalizeFormats(formats: string[]) {
   for (const raw of formats) {
     const name = fold(raw);
     if (
-      ["face a face", "chez l'eleve", "chez l’eleve", "chez le professeur", "presentiel", "a domicile", "en presentiel"].includes(
-        name
-      ) &&
+      [
+        "face a face",
+        "chez l'eleve",
+        "chez l’eleve",
+        "chez le professeur",
+        "presentiel",
+        "a domicile",
+        "en presentiel",
+      ].includes(name) &&
       !next.includes("Face à face")
     ) {
       next.push("Face à face");
     }
-    if (["a distance", "en ligne"].includes(name) && !next.includes("À distance")) next.push("À distance");
+    if (["a distance", "en ligne"].includes(name) && !next.includes("À distance")) {
+      next.push("À distance");
+    }
   }
   return next;
 }

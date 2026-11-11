@@ -5,14 +5,6 @@ export const REPORT_REASONS = [
   "Autre",
 ] as const;
 
-export function responseLabel(minutes: number | null | undefined) {
-  if (minutes == null || !Number.isFinite(minutes)) return null;
-  if (minutes <= 60) return "Répond en moins d’une heure";
-  if (minutes <= 24 * 60) return "Répond en moins de 24 h";
-  if (minutes <= 48 * 60) return "Répond en moins de 48 h";
-  return "Répond en plus de 48 h";
-}
-
 export function isAdultBirthDate(value: string) {
   const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim());
   if (!match) return false;

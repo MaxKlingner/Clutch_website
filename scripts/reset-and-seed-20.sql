@@ -36,7 +36,7 @@ BEGIN
     'Ottignies-Louvain-La-Neuve', '1340', 50.67267, 4.58049,
     ARRAY['Face à face', 'À distance']::text[], ARRAY['Primaire', 'Secondaire', 'Supérieur', 'Formation pour adultes']::text[],
     'Master en sciences mathématiques à finalité didactique et agrégation', 'Université catholique de Louvain (UCLouvain)', 2022,
-    15, '+32 470 11 22 33', now() - interval '480 hours'
+    NULL, '+32 470 11 22 33', now() - interval '480 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.matches (parent_id, tutor_id, status, lesson_given_at, lesson_given_by, created_at)
@@ -157,7 +157,7 @@ BEGIN
     'Bruxelles', '1000', 50.84656, 4.3517,
     ARRAY['Face à face']::text[], ARRAY['Primaire']::text[],
     'Bachelier instituteur primaire', 'Haute École Francisco Ferrer', 2025,
-    NULL, NULL, now() - interval '456 hours'
+    NULL, '+32 473 12 45 78', now() - interval '456 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.profiles (
@@ -173,7 +173,7 @@ BEGIN
     'Woluwe-Saint-Pierre', '1150', 50.82924, 4.4433,
     ARRAY['À distance']::text[], ARRAY['Supérieur', 'Formation pour adultes']::text[],
     'PhD en finance quantitative et ingénieur de gestion', 'Solvay Brussels School (ULB)', 1998,
-    35, '+32 2 555 89 10', now() - interval '432 hours'
+    NULL, '+32 2 555 89 10', now() - interval '432 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.matches (parent_id, tutor_id, status, lesson_given_at, lesson_given_by, created_at)
@@ -273,7 +273,7 @@ BEGIN
     'Mont-Saint-Guibert', '1435', 50.63656, 4.6127,
     ARRAY['Face à face', 'À distance']::text[], ARRAY['Secondaire']::text[],
     'Master en sciences physiques', 'Université de Namur (UNamur)', 2021,
-    12, '+32 472 33 44 55', now() - interval '408 hours'
+    NULL, '+32 472 33 44 55', now() - interval '408 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.matches (parent_id, tutor_id, status, lesson_given_at, lesson_given_by, created_at)
@@ -352,7 +352,7 @@ BEGIN
     'Braine-L''alleud', '1420', 50.69409, 4.35481,
     ARRAY['Face à face', 'À distance']::text[], ARRAY['Secondaire', 'Formation pour adultes']::text[],
     'Master en langues et lettres françaises et romanes', 'Université libre de Bruxelles (ULB)', 2014,
-    180, '+32 495 44 55 66', now() - interval '384 hours'
+    NULL, '+32 495 44 55 66', now() - interval '384 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.matches (parent_id, tutor_id, status, lesson_given_at, lesson_given_by, created_at)
@@ -410,7 +410,7 @@ BEGIN
     'Grez-Doiceau', '1390', 50.73862, 4.69623,
     ARRAY['À distance']::text[], ARRAY['Supérieur', 'Formation pour adultes']::text[],
     'Master en sciences informatiques', 'UCLouvain', 2020,
-    45, '+32 478 90 12 34', now() - interval '360 hours'
+    NULL, '+32 478 90 12 34', now() - interval '360 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.profiles (
@@ -426,7 +426,7 @@ BEGIN
     'Bruxelles', '1000', 50.84656, 4.3517,
     ARRAY['Face à face', 'À distance']::text[], ARRAY['Primaire', 'Secondaire']::text[],
     'Master en traduction et interprétation', 'ISTI - ULB', 2023,
-    90, NULL, now() - interval '336 hours'
+    NULL, '+32 485 21 63 84', now() - interval '336 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.matches (parent_id, tutor_id, status, lesson_given_at, lesson_given_by, created_at)
@@ -463,7 +463,7 @@ BEGIN
     'Ixelles', '1050', 50.82229, 4.38157,
     ARRAY['Face à face']::text[], ARRAY['Secondaire']::text[],
     'Master en biologie des organismes et écologie', 'ULB', 2024,
-    25, '+32 486 77 11 02', now() - interval '312 hours'
+    NULL, '+32 486 77 11 02', now() - interval '312 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.matches (parent_id, tutor_id, status, lesson_given_at, lesson_given_by, created_at)
@@ -521,7 +521,7 @@ BEGIN
     'Etterbeek', '1040', 50.83685, 4.38951,
     ARRAY['Face à face', 'À distance']::text[], ARRAY['Secondaire', 'Supérieur']::text[],
     'Bachelier en sciences de l’ingénieur', 'École polytechnique de Bruxelles', 2025,
-    480, NULL, now() - interval '288 hours'
+    NULL, '+32 494 38 72 19', now() - interval '288 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.matches (parent_id, tutor_id, status, lesson_given_at, lesson_given_by, created_at)
@@ -579,7 +579,7 @@ BEGIN
     'Schaerbeek', '1030', 50.8676, 4.37371,
     ARRAY['Face à face']::text[], ARRAY['Primaire', 'Secondaire']::text[],
     'Bachelier AESI français et morale', 'Haute École Galilée', 2023,
-    2100, '+32 484 55 22 90', now() - interval '264 hours'
+    NULL, '+32 484 55 22 90', now() - interval '264 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.matches (parent_id, tutor_id, status, lesson_given_at, lesson_given_by, created_at)
@@ -616,7 +616,7 @@ BEGIN
     'Uccle', '1180', 50.80182, 4.33723,
     ARRAY['Face à face', 'À distance']::text[], ARRAY['Secondaire', 'Supérieur']::text[],
     'Master en sciences économiques', 'UCLouvain Saint-Louis Bruxelles', 2018,
-    55, '+32 475 66 77 88', now() - interval '240 hours'
+    NULL, '+32 475 66 77 88', now() - interval '240 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.matches (parent_id, tutor_id, status, lesson_given_at, lesson_given_by, created_at)
@@ -653,7 +653,7 @@ BEGIN
     'Woluwe-Saint-Lambert', '1200', 50.84669, 4.42848,
     ARRAY['Face à face', 'À distance']::text[], ARRAY['Secondaire', 'Supérieur', 'Formation pour adultes']::text[],
     'Master en business engineering', 'Louvain School of Management', 2021,
-    30, NULL, now() - interval '216 hours'
+    NULL, '+32 474 65 91 20', now() - interval '216 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.matches (parent_id, tutor_id, status, lesson_given_at, lesson_given_by, created_at)
@@ -690,7 +690,7 @@ BEGIN
     'Wavre', '1300', 50.71642, 4.60774,
     ARRAY['Face à face']::text[], ARRAY['Secondaire']::text[],
     'Master en chimie', 'UCLouvain', 2019,
-    110, '+32 477 88 99 00', now() - interval '192 hours'
+    NULL, '+32 477 88 99 00', now() - interval '192 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.matches (parent_id, tutor_id, status, lesson_given_at, lesson_given_by, created_at)
@@ -748,7 +748,7 @@ BEGIN
     'Ottignies', '1340', 50.66636, 4.56905,
     ARRAY['Face à face', 'À distance']::text[], ARRAY['Primaire', 'Secondaire']::text[],
     'Master en logopédie', 'Université de Liège (ULiège)', 2022,
-    40, '+32 496 22 33 44', now() - interval '168 hours'
+    NULL, '+32 496 22 33 44', now() - interval '168 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.matches (parent_id, tutor_id, status, lesson_given_at, lesson_given_by, created_at)
@@ -785,7 +785,7 @@ BEGIN
     'Louvain-La-Neuve', '1348', 50.67417, 4.61416,
     ARRAY['Face à face', 'À distance']::text[], ARRAY['Secondaire', 'Supérieur']::text[],
     'Master ingénieur civil en informatique', 'École polytechnique de Louvain', 2025,
-    20, NULL, now() - interval '144 hours'
+    NULL, '+32 487 54 18 36', now() - interval '144 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.matches (parent_id, tutor_id, status, lesson_given_at, lesson_given_by, created_at)
@@ -822,7 +822,7 @@ BEGIN
     'Waterloo', '1410', 50.71736, 4.3978,
     ARRAY['Face à face', 'À distance']::text[], ARRAY['Secondaire', 'Supérieur']::text[],
     'Master en sciences politiques et relations internationales', 'KU Leuven', 2020,
-    280, '+32 471 10 20 30', now() - interval '120 hours'
+    NULL, '+32 471 10 20 30', now() - interval '120 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.profiles (
@@ -838,7 +838,7 @@ BEGIN
     'Nivelles', '1400', 50.58916, 4.33191,
     ARRAY['Face à face']::text[], ARRAY['Secondaire', 'Supérieur']::text[],
     'Agrégation et Master en physique fondamentale', 'ULB', 2009,
-    60, '+32 497 80 70 60', now() - interval '96 hours'
+    NULL, '+32 497 80 70 60', now() - interval '96 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.matches (parent_id, tutor_id, status, lesson_given_at, lesson_given_by, created_at)
@@ -875,7 +875,7 @@ BEGIN
     'Namur', '5000', 50.4562, 4.84931,
     ARRAY['Face à face', 'À distance']::text[], ARRAY['Primaire', 'Secondaire']::text[],
     'Bachelier en agronomie et pédagogie', 'HEPN Namur', 2024,
-    50, NULL, now() - interval '72 hours'
+    NULL, '+32 498 83 27 41', now() - interval '72 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.matches (parent_id, tutor_id, status, lesson_given_at, lesson_given_by, created_at)
@@ -912,7 +912,7 @@ BEGIN
     'Liège', '4000', 50.64514, 5.57342,
     ARRAY['À distance']::text[], ARRAY['Secondaire', 'Supérieur', 'Formation pour adultes']::text[],
     'Master ingénieur de gestion orientation analytics', 'HEC Liège', 2021,
-    720, '+32 479 44 11 22', now() - interval '48 hours'
+    NULL, '+32 479 44 11 22', now() - interval '48 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.matches (parent_id, tutor_id, status, lesson_given_at, lesson_given_by, created_at)
@@ -949,7 +949,7 @@ BEGIN
     'Charleroi', '6000', 50.41571, 4.44916,
     ARRAY['Face à face', 'À distance']::text[], ARRAY['Primaire', 'Secondaire']::text[],
     'Bachelier instituteur et régendat polyvalent', 'Haute École Condorcet', 2023,
-    18, '+32 492 15 25 35', now() - interval '24 hours'
+    NULL, '+32 492 15 25 35', now() - interval '24 hours'
   ) RETURNING id INTO v_tutor_id;
 
   INSERT INTO public.matches (parent_id, tutor_id, status, lesson_given_at, lesson_given_by, created_at)

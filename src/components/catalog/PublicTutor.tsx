@@ -17,7 +17,7 @@ import {
   type Review,
   type Tutor,
 } from "@/lib/db";
-import { diplomaLine, responseLabel } from "@/lib/trust";
+import { diplomaLine } from "@/lib/trust";
 
 function formatReviewDate(iso: string) {
   if (!iso) return null;
@@ -142,7 +142,6 @@ export default function PublicTutor({
     : tutor.subject
       ? [tutor.subject]
       : [];
-  const replyText = responseLabel(tutor.responseMinutes);
   const fullDiploma = diplomaLine(tutor);
   const placeLabel = tutor.city
     ? tutor.postalCode
@@ -183,11 +182,6 @@ export default function PublicTutor({
                       <span className="rounded-full bg-[#f6f7f8] px-3 py-1 text-black/75">
                         {placeLabel}
                       </span>
-                      {replyText ? (
-                        <span className="rounded-full bg-[#e7f6f1] px-3 py-1 text-[#087a5c]">
-                          {replyText}
-                        </span>
-                      ) : null}
                     </div>
                   </div>
                   {isSignedIn && !isOwnProfile ? (
@@ -228,10 +222,10 @@ export default function PublicTutor({
                   ))}
                 </div>
               ) : null}
-              {tutor.taughtLevels.length || tutor.teachingFormats.length ? (
+              {tutor.taughtLevels.length ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-extrabold tracking-wide text-black/40 uppercase">
-                    Public & format
+                    Public
                   </span>
                   {tutor.taughtLevels.map((level) => (
                     <span
@@ -241,6 +235,13 @@ export default function PublicTutor({
                       {level}
                     </span>
                   ))}
+                </div>
+              ) : null}
+              {tutor.teachingFormats.length ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-extrabold tracking-wide text-black/40 uppercase">
+                    Format
+                  </span>
                   {tutor.teachingFormats.map((format) => (
                     <span
                       key={format}
@@ -344,16 +345,13 @@ export default function PublicTutor({
 
         <aside className="space-y-4 lg:sticky lg:top-[calc(var(--site-header,3.5rem)+1.5rem)]">
           <div className="rounded-3xl bg-white p-6 shadow-[0_12px_40px_rgba(15,28,26,0.07)] ring-1 ring-black/5">
-            <div className="flex items-baseline justify-between gap-2">
+            <div>
               <p>
                 <span className="font-display text-4xl font-bold text-[#0f1c1a]">
                   {formatRate(tutor.hourlyRate)} €
                 </span>
                 <span className="ml-1 text-sm font-semibold text-black/50">/ heure</span>
               </p>
-              <span className="rounded-full bg-[#e7f6f1] px-3 py-1 text-xs font-bold text-[#087a5c]">
-                Sans commission
-              </span>
             </div>
 
             <dl className="mt-5 space-y-3 border-t border-black/5 pt-4 text-sm">
@@ -368,17 +366,11 @@ export default function PublicTutor({
                 </dd>
               </div>
               <div className="flex items-start justify-between gap-4">
-                <dt className="shrink-0 text-black/50">Niveaux</dt>
+                <dt className="shrink-0 text-black/50">Public</dt>
                 <dd className="text-right font-semibold text-[#0f1c1a]">
                   {tutor.taughtLevels.join(", ") || "À préciser"}
                 </dd>
               </div>
-              {replyText ? (
-                <div className="flex items-start justify-between gap-4">
-                  <dt className="shrink-0 text-black/50">Réactivité</dt>
-                  <dd className="text-right font-semibold text-[#087a5c]">{replyText}</dd>
-                </div>
-              ) : null}
             </dl>
 
             {tutor.hasContactPhone ? (
