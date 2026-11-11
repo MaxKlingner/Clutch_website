@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth, useSession } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
 import BackLink from "@/components/site/BackLink";
 import { firstName, formatRate, Portrait } from "@/components/site/TutorCard";
@@ -35,11 +35,14 @@ export default function PublicTutor({
   initialReviews?: Review[];
 }) {
   const { isSignedIn, userId } = useAuth();
+  const { session } = useSession();
   const router = useRouter();
   const [tutor, setTutor] = useState<Tutor | null>(initialTutor ?? null);
   const [loaded, setLoaded] = useState(initialTutor !== undefined);
   const [saved, setSaved] = useState(false);
   const [contactPhone, setContactPhone] = useState<string | null>(null);
+  const [phoneState, setPhoneState] = useState<"idle" | "loaded" | "error">("idle");
+  const [phoneRetry, setPhoneRetry] = useState(0);
   const [reviews, setReviews] = useState<Review[]>(initialReviews ?? []);
   const [error, setError] = useState("");
 
@@ -76,18 +79,23 @@ export default function PublicTutor({
   }, [userId, id]);
 
   const hasContactPhone = Boolean(tutor?.hasContactPhone);
+  const hasSession = Boolean(session);
   useEffect(() => {
-    if (!isSignedIn || !hasContactPhone) return;
+    if (!isSignedIn || !hasSession || !hasContactPhone) return;
     let cancel = false;
     fetchTutorContactPhone(id)
       .then((phone) => {
-        if (!cancel) setContactPhone(phone);
+        if (cancel) return;
+        setContactPhone(phone);
+        setPhoneState("loaded");
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!cancel) setPhoneState("error");
+      });
     return () => {
       cancel = true;
     };
-  }, [isSignedIn, hasContactPhone, id]);
+  }, [isSignedIn, hasSession, hasContactPhone, id, phoneRetry]);
 
   async function contact() {
     if (!tutor) return;
@@ -368,6 +376,22 @@ export default function PublicTutor({
                       <span>{contactPhone}</span>
                       <span className="text-xs">Appeler →</span>
                     </a>
+                  ) : phoneState === "error" ? (
+                    <div className="mt-2 flex items-center justify-between gap-2 rounded-2xl bg-[#fdf1f1] px-3.5 py-2.5 text-xs font-semibold text-[#c23b3b]">
+                      <span>Numéro indisponible (accès refusé).</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPhoneState("idle");
+                          setPhoneRetry((n) => n + 1);
+                        }}
+                        className="shrink-0 font-extrabold underline"
+                      >
+                        Réessayer
+                      </button>
+                    </div>
+                  ) : phoneState === "loaded" ? (
+                    <p className="mt-2 text-sm text-black/50">Numéro non communiqué.</p>
                   ) : (
                     <p className="mt-2 text-sm text-black/50">Chargement du numéro…</p>
                   )
