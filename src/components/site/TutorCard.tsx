@@ -1,6 +1,26 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Tutor } from "@/lib/db";
 import { responseLabel } from "@/lib/trust";
+
+const OPTIMIZABLE_HOSTS = new Set([
+  "sigmknikvehehydkizvd.supabase.co",
+  "img.clerk.com",
+]);
+
+function canOptimizeImage(url: string) {
+  if (url.startsWith("/")) return true;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" || !OPTIMIZABLE_HOSTS.has(parsed.hostname)) return false;
+    if (parsed.hostname === "sigmknikvehehydkizvd.supabase.co") {
+      return parsed.pathname.startsWith("/storage/v1/object/public/");
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export function firstName(name: string) {
   return name.trim().split(/\s+/)[0] || name;
@@ -14,14 +34,24 @@ export function formatRate(rate: number) {
 export function Portrait({
   name,
   url,
-  className = "h-28 w-full rounded-2xl object-cover sm:h-36",
+  className = "aspect-square h-auto w-full rounded-2xl object-cover",
 }: {
   name: string;
   url: string | null;
   className?: string;
 }) {
   if (url) {
-    return <img src={url} alt="" className={className} />;
+    return (
+      <Image
+        src={url}
+        alt=""
+        width={400}
+        height={400}
+        sizes="(max-width: 640px) 50vw, 280px"
+        unoptimized={!canOptimizeImage(url)}
+        className={className}
+      />
+    );
   }
   const initials = name
     .split(" ")

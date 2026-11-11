@@ -235,6 +235,8 @@ export default function PhotoCropper({
           onPointerCancel={onPointerUp}
         >
           {src ? (
+            // Local blob: preview positioned dynamically in px before drawing onto <canvas>; next/image is unsupported here.
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               ref={imgRef}
               src={src}
