@@ -98,6 +98,7 @@ const useClerkJwt = process.env.NEXT_PUBLIC_CLERK_SUPABASE_AUTH !== "false";
 let client: SupabaseClient | null = null;
 let publicClient: SupabaseClient | null = null;
 let tokenProvider: (() => Promise<string | null>) | null = null;
+let nextChannelId = 0;
 
 export function setSupabaseTokenProvider(provider: (() => Promise<string | null>) | null) {
   tokenProvider = provider;
@@ -826,14 +827,18 @@ export async function markMatchRead(matchId: string, asTutor: boolean) {
 }
 
 export function subscribeIncomingMessages(onEvent: () => void) {
-  const db = getSupabase();
-  const channel = db
-    .channel("web-unread-messages")
-    .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, onEvent)
-    .subscribe();
-  return () => {
-    db.removeChannel(channel);
-  };
+  try {
+    const db = getSupabase();
+    const channel = db
+      .channel(`web-unread-messages-${++nextChannelId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, onEvent)
+      .subscribe();
+    return () => {
+      void db.removeChannel(channel);
+    };
+  } catch {
+    return () => undefined;
+  }
 }
 
 export async function fetchParentMatches(parentId: string) {
@@ -994,21 +999,25 @@ export function subscribeMessages(
   matchId: string,
   onChange: (message: ChatMessage) => void
 ) {
-  const db = getSupabase();
-  const channel = db
-    .channel(`web-messages-${matchId}`)
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "messages", filter: `match_id=eq.${matchId}` },
-      (payload) => {
-        const message = mapMessage(payload.new as Record<string, unknown>);
-        if (message && message.messageType !== "payment_request") onChange(message);
-      }
-    )
-    .subscribe();
-  return () => {
-    db.removeChannel(channel);
-  };
+  try {
+    const db = getSupabase();
+    const channel = db
+      .channel(`web-messages-${matchId}-${++nextChannelId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "messages", filter: `match_id=eq.${matchId}` },
+        (payload) => {
+          const message = mapMessage(payload.new as Record<string, unknown>);
+          if (message && message.messageType !== "payment_request") onChange(message);
+        }
+      )
+      .subscribe();
+    return () => {
+      void db.removeChannel(channel);
+    };
+  } catch {
+    return () => undefined;
+  }
 }
 
 export async function sendText(input: {
