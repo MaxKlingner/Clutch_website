@@ -70,19 +70,10 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
       />
 
       <section className="mx-auto max-w-4xl px-4 pt-14 pb-12 text-center sm:px-6 sm:pt-20 sm:pb-16">
-        <p className="inline-flex items-center gap-2 rounded-full bg-[#e7f6f1] px-4 py-1.5 text-xs font-extrabold tracking-wide text-[#087a5c]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#0d9f7a]" aria-hidden="true" />
-          100 % gratuit · Sans commission · Direct
-        </p>
-
-        <h1 className="mx-auto mt-6 max-w-3xl font-display text-4xl font-bold tracking-tight text-[#0f1c1a] sm:text-6xl sm:leading-[1.06]">
+        <h1 className="mx-auto max-w-3xl font-display text-4xl font-bold tracking-tight text-[#0f1c1a] sm:text-6xl sm:leading-[1.06]">
           Trouver son professeur,{" "}
           <span className="text-[#087a5c]">simplement et gratuitement.</span>
         </h1>
-
-        <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-black/60 sm:text-lg">
-          « Parce qu’apprendre avec la bonne personne ne devrait jamais coûter de frais d’intermédiaire. »
-        </p>
 
         <div className="mx-auto mt-8 max-w-2xl">
           <SearchBar prominent ctaLabel="Trouver mon professeur →" />
@@ -99,16 +90,6 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
               {subject}
             </button>
           ))}
-        </div>
-
-        <div className="mt-6">
-          <Link
-            href="/professeurs"
-            onClick={openAll}
-            className="inline-flex items-center gap-1.5 text-sm font-bold text-[#12382c] hover:text-[#087a5c] hover:underline"
-          >
-            Ou parcourir tous les professeurs →
-          </Link>
         </div>
       </section>
 
