@@ -133,18 +133,18 @@ export default function Catalog({
     <main className="mx-auto max-w-6xl px-4 pb-10 sm:px-6">
       <div className="sticky top-[var(--site-header,3.5rem)] z-20 -mx-4 overflow-visible bg-[#f6f7f8] px-4 py-3 sm:-mx-6 sm:px-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center md:pr-[var(--header-search-end-inset,0px)]">
-          <div className="flex w-fit shrink-0 rounded-full bg-white p-1 text-sm font-semibold">
+          <div className="flex w-fit shrink-0 rounded-full border border-black/10 bg-white p-1 text-sm font-semibold">
             <button
               type="button"
               onClick={() => setView("liste")}
-              className={`rounded-full px-3 py-2 ${view === "liste" ? "bg-[#1c1c1c] text-white" : "text-black/60"}`}
+              className={`rounded-full px-3.5 py-1.5 transition ${view === "liste" ? "bg-[#12382c] text-white" : "text-black/60 hover:text-black"}`}
             >
               Liste
             </button>
             <button
               type="button"
               onClick={() => setView("carte")}
-              className={`rounded-full px-3 py-2 ${view === "carte" ? "bg-[#1c1c1c] text-white" : "text-black/60"}`}
+              className={`rounded-full px-3.5 py-1.5 transition ${view === "carte" ? "bg-[#12382c] text-white" : "text-black/60 hover:text-black"}`}
             >
               Carte
             </button>

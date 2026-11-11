@@ -85,7 +85,7 @@ export default function TutorCard({
   const name = firstName(tutor.name);
   const label = `${name} — ${tutor.specialties[0] || tutor.subject}, ${formatRate(tutor.hourlyRate)} €/h`;
   return (
-    <article className="relative isolate flex flex-col rounded-3xl bg-white p-4 shadow-[0_8px_30px_rgba(15,28,26,0.06)] transition hover:-translate-y-0.5">
+    <article className="relative isolate flex flex-col rounded-3xl bg-white p-4 shadow-[0_8px_30px_rgba(15,28,26,0.05)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(15,28,26,0.09)]">
       <Link
         href={`/tuteur/${tutor.id}`}
         className="absolute inset-0 z-10 rounded-3xl"

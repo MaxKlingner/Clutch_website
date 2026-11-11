@@ -132,8 +132,10 @@ export function Welcome() {
               type="button"
               key={item}
               onClick={() => setRole(item)}
-              className={`rounded-2xl px-4 py-4 font-extrabold ${
-                role === item ? "bg-[#1c1c1c] text-white" : "bg-white"
+              className={`rounded-2xl px-4 py-4 font-extrabold transition ${
+                role === item
+                  ? "bg-[#12382c] text-white"
+                  : "bg-white shadow-[0_8px_30px_rgba(15,28,26,0.04)] hover:bg-[#f3f7f5]"
               }`}
             >
               {item === "parent" ? "Élève / Parent" : "Professeur"}
@@ -199,7 +201,7 @@ export function Welcome() {
           </Link>
         </p>
         {error ? <p className="mt-3 text-sm text-[#c23b3b]">{error}</p> : null}
-        <button className="mt-6 w-full rounded-full bg-[#0d9f7a] py-3 font-extrabold text-white">
+        <button className="mt-6 w-full rounded-full bg-[#0d9f7a] py-3 font-extrabold text-white transition hover:bg-[#087a5c]">
           Continuer
         </button>
       </form>
@@ -209,7 +211,7 @@ export function Welcome() {
 
 function BackToTutors() {
   return (
-    <Link href="/professeurs" className="text-sm font-semibold text-black/55">
+    <Link href="/professeurs" className="text-sm font-semibold text-black/55 transition hover:text-[#087a5c]">
       ← Tous les professeurs
     </Link>
   );

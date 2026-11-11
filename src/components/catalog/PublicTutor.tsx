@@ -197,17 +197,17 @@ export default function PublicTutor({
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <section className="rounded-3xl bg-white p-6">
+        <section className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)]">
           <h2 className="font-extrabold">À propos</h2>
           <p className="mt-3 text-sm leading-7 text-black/75">{tutor.bio || "Présentation à venir."}</p>
         </section>
-        <section className="rounded-3xl bg-white p-6">
+        <section className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)]">
           <h2 className="font-extrabold">À propos de {name}</h2>
           <p className="mt-3 text-sm leading-7 text-black/75">
             {tutor.aboutTutor || "Présentation à venir."}
           </p>
         </section>
-        <section className="rounded-3xl bg-white p-6 lg:col-span-2">
+        <section className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)] lg:col-span-2">
           <h2 className="font-extrabold">À propos du cours</h2>
           <p className="mt-3 text-sm leading-7 text-black/75">
             {tutor.aboutCourse || "Le déroulement du cours sera précisé."}
@@ -216,14 +216,14 @@ export default function PublicTutor({
       </div>
 
       {diplomaLine(tutor) ? (
-        <section className="mt-4 rounded-3xl bg-white p-6">
+        <section className="mt-4 rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)]">
           <h2 className="font-extrabold">Diplôme</h2>
           <p className="mt-3 text-sm leading-7 text-black/75">{diplomaLine(tutor)}</p>
         </section>
       ) : null}
 
       {tutor.hasContactPhone ? (
-        <section className="mt-4 rounded-3xl bg-white p-6">
+        <section className="mt-4 rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)]">
           <h2 className="font-extrabold">Téléphone</h2>
           {isSignedIn ? (
             contactPhone ? (
@@ -245,7 +245,7 @@ export default function PublicTutor({
               </p>
               <Link
                 href={`/connexion?next=${encodeURIComponent(`/tuteur/${tutor.id}`)}`}
-                className="rounded-full bg-[#12382c] px-4 py-2 text-xs font-extrabold text-white"
+                className="rounded-full bg-[#12382c] px-4 py-2 text-xs font-extrabold text-white transition hover:bg-[#087a5c]"
               >
                 Connecte-toi pour voir le numéro
               </Link>
@@ -254,7 +254,7 @@ export default function PublicTutor({
         </section>
       ) : null}
 
-      <section className="mt-4 rounded-3xl bg-white p-6">
+      <section className="mt-4 rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)]">
         <h2 className="font-extrabold">Commentaires</h2>
         {reviews.length ? (
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -286,7 +286,7 @@ export default function PublicTutor({
             </p>
             <Link
               href="/annonce"
-              className="mt-3 grid h-11 w-full place-items-center rounded-full bg-[#12382c] text-sm font-extrabold text-white"
+              className="mt-3 grid h-11 w-full place-items-center rounded-full bg-[#12382c] text-sm font-extrabold text-white transition hover:bg-[#087a5c]"
             >
               Modifier mon annonce
             </Link>
@@ -296,7 +296,7 @@ export default function PublicTutor({
             <button
               type="button"
               onClick={contact}
-              className="h-12 w-full rounded-full bg-[#0d9f7a] text-sm font-extrabold text-white"
+              className="h-12 w-full rounded-full bg-[#0d9f7a] text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(13,159,122,0.22)] transition hover:bg-[#087a5c]"
             >
               {isSignedIn
                 ? "Envoyer un message gratuitement"

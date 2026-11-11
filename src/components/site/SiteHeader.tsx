@@ -183,7 +183,7 @@ export default function SiteHeader() {
               </div>
             </>
           ) : (
-            <Link href="/connexion" className="rounded-full bg-[#1c1c1c] px-4 py-2 text-white">
+            <Link href="/connexion" className="rounded-full bg-[#12382c] px-4 py-2 text-white transition hover:bg-[#087a5c]">
               Connexion
             </Link>
           )}

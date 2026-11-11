@@ -76,10 +76,10 @@ export default function FilterBar({
             type="button"
             aria-expanded={panel === chip.key}
             onClick={() => setPanel((current) => (current === chip.key ? null : chip.key))}
-            className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold ${
+            className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
               chip.active
                 ? "border-[#12382c] bg-[#12382c] text-white"
-                : "border-black/10 bg-white text-black/70"
+                : "border-black/10 bg-white text-black/70 hover:border-black/25"
             }`}
           >
             <span className="truncate">{chip.label}</span>
