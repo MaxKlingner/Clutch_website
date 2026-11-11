@@ -90,8 +90,8 @@ export default function FilterBar({
           {panel === chip.key ? (
             <div
               className={`absolute top-[calc(100%+8px)] z-50 w-56 rounded-2xl bg-white p-2 shadow-[0_18px_50px_rgba(15,28,26,0.14)] ring-1 ring-black/5 ${
-                index >= chips.length - 2 ? "right-0" : "left-0"
-              }`}
+                index % 2 === 1 ? "right-0" : "left-0"
+              } ${index >= chips.length - 2 ? "sm:left-auto sm:right-0" : "sm:left-0 sm:right-auto"}`}
             >
               {chip.key === "format"
                 ? FORMATS.map((item) => (

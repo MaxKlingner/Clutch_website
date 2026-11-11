@@ -170,11 +170,11 @@ export default function SiteHeader() {
         ) : null}
         <div
           ref={navRef}
-          className="ml-auto flex shrink-0 items-center gap-0.5 text-sm font-semibold sm:gap-2"
+          className="ml-auto flex shrink-0 items-center gap-1 text-xs font-semibold sm:gap-2 sm:text-sm"
         >
           <Link
             href={teachHref}
-            className={`rounded-full px-2.5 py-2 transition duration-300 sm:px-3 ${
+            className={`whitespace-nowrap rounded-full px-2 py-2 transition duration-300 sm:px-3 ${
               transparentHero ? "text-white hover:bg-white/15" : "hover:bg-black/5"
             }`}
           >
@@ -206,7 +206,7 @@ export default function SiteHeader() {
                   aria-label="Compte"
                   title="Compte"
                   aria-expanded={open}
-                  className={`grid h-10 w-10 place-items-center rounded-full transition duration-300 ${
+                  className={`grid h-9 w-9 place-items-center rounded-full transition duration-300 sm:h-10 sm:w-10 ${
                     transparentHero
                       ? open || pathname.startsWith("/compte")
                         ? "bg-white/20 text-white"
@@ -243,8 +243,8 @@ export default function SiteHeader() {
               href="/connexion"
               className={
                 transparentHero
-                  ? "rounded-full bg-white px-4 py-2 font-bold text-[#12382c] shadow-sm transition duration-300 hover:bg-[#e7f6f1]"
-                  : "rounded-full bg-[#12382c] px-4 py-2 text-white transition duration-300 hover:bg-[#087a5c]"
+                  ? "whitespace-nowrap rounded-full bg-white px-3 py-2 font-bold text-[#12382c] shadow-sm transition duration-300 hover:bg-[#e7f6f1] sm:px-4"
+                  : "whitespace-nowrap rounded-full bg-[#12382c] px-3 py-2 text-white transition duration-300 hover:bg-[#087a5c] sm:px-4"
               }
             >
               Connexion
@@ -281,7 +281,7 @@ function IconLink({
       href={href}
       aria-label={label}
       title={label}
-      className={`relative grid h-10 w-10 place-items-center rounded-full transition duration-300 ${
+      className={`relative grid h-9 w-9 place-items-center rounded-full transition duration-300 sm:h-10 sm:w-10 ${
         onDark
           ? active
             ? "bg-white/20 text-white"

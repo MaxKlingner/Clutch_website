@@ -217,7 +217,7 @@ export default function PhotoCropper({
         role="dialog"
         aria-modal="true"
         aria-labelledby="crop-title"
-        className="w-full max-w-sm rounded-3xl bg-white p-5 shadow-[0_16px_50px_rgba(15,28,26,0.18)]"
+        className="max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-3xl bg-white p-5 shadow-[0_16px_50px_rgba(15,28,26,0.18)]"
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="crop-title" className="font-display text-xl font-bold">

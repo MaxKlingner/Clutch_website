@@ -148,5 +148,10 @@ export default function TutorMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature, router, focus?.lat, focus?.lng, focus?.zoom, focus?.radiusKm]);
 
-  return <div ref={node} className="isolate h-[calc(100dvh-13rem)] min-h-[520px] w-full rounded-3xl" />;
+  return (
+    <div
+      ref={node}
+      className="isolate h-[calc(100dvh-19.5rem)] min-h-[360px] w-full rounded-3xl sm:h-[calc(100dvh-13rem)] sm:min-h-[520px]"
+    />
+  );
 }

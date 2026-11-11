@@ -131,7 +131,7 @@ export default function Catalog({
 
   return (
     <main className="mx-auto max-w-6xl px-4 pb-10 sm:px-6">
-      <div className="sticky top-[var(--site-header,3.5rem)] z-20 -mx-4 overflow-visible bg-[#f6f7f8] px-4 py-3 sm:-mx-6 sm:px-6">
+      <div className="relative z-20 -mx-4 overflow-visible bg-[#f6f7f8] px-4 py-3 sm:sticky sm:top-[var(--site-header,3.5rem)] sm:-mx-6 sm:px-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center md:pr-[var(--header-search-end-inset,0px)]">
           <div className="flex w-fit shrink-0 rounded-full border border-black/10 bg-white p-1 text-sm font-semibold">
             <button
