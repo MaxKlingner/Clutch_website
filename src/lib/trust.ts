@@ -50,7 +50,8 @@ export function diplomaLine(input: {
 export function diplomaPayload(
   title: string,
   school: string,
-  year: string
+  year: string,
+  required = false
 ):
   | { diplomaTitle: string; diplomaSchool: string; diplomaYear: number | null }
   | { error: string } {
@@ -58,6 +59,9 @@ export function diplomaPayload(
   const diplomaSchool = school.trim();
   const rawYear = year.trim();
   if (!diplomaTitle && !diplomaSchool && !rawYear) {
+    if (required) {
+      return { error: "Renseigne ton diplôme (intitulé, établissement et année)." };
+    }
     return { diplomaTitle: "", diplomaSchool: "", diplomaYear: null };
   }
   if (!diplomaTitle || !diplomaSchool || !rawYear) {

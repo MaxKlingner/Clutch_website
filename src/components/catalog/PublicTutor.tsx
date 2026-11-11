@@ -19,6 +19,13 @@ import {
 } from "@/lib/db";
 import { diplomaLine, responseLabel } from "@/lib/trust";
 
+function formatReviewDate(iso: string) {
+  if (!iso) return null;
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Intl.DateTimeFormat("fr-BE", { month: "short", year: "numeric" }).format(parsed);
+}
+
 export default function PublicTutor({
   id,
   initialTutor,
@@ -130,193 +137,351 @@ export default function PublicTutor({
 
   const isOwnProfile = Boolean(userId && tutor.clerkId === userId);
   const name = firstName(tutor.name);
-  const facts = [
-    { label: "Tarif", value: `${formatRate(tutor.hourlyRate)} €/h` },
-    {
-      label: "Avis",
-      value:
-        tutor.rating > 0 ? `${tutor.rating.toFixed(1)} · ${tutor.reviewCount}` : "Nouveau",
-    },
-    { label: "Ville", value: tutor.city || "À préciser" },
-  ];
+  const subjects = tutor.specialties.length
+    ? tutor.specialties
+    : tutor.subject
+      ? [tutor.subject]
+      : [];
+  const replyText = responseLabel(tutor.responseMinutes);
+  const fullDiploma = diplomaLine(tutor);
+  const placeLabel = tutor.city
+    ? tutor.postalCode
+      ? `${tutor.city} (${tutor.postalCode})`
+      : tutor.city
+    : "À préciser";
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
+    <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <BackLink />
-      <div className="mt-4 rounded-3xl bg-white p-5 shadow-[0_8px_30px_rgba(15,28,26,0.06)] sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
-          <Portrait
-            name={tutor.name}
-            url={tutor.avatarUrl}
-            className="aspect-square h-40 w-40 shrink-0 rounded-2xl object-cover"
-          />
-          <div className="flex min-w-0 flex-1 flex-col justify-between gap-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h1 className="truncate font-display text-3xl font-bold">{name}</h1>
-                <p className="mt-1 text-sm font-semibold text-black/75">
-                  {tutor.specialties.join(" · ") || "Matières à préciser"}
-                </p>
-                <p className="mt-1 text-sm text-black/55">
-                  {tutor.teachingFormats.join(" · ") || "Format à préciser"}
-                  {tutor.taughtLevels.length ? ` · ${tutor.taughtLevels.join(" · ")}` : ""}
-                </p>
-                {responseLabel(tutor.responseMinutes) ? (
-                  <p className="mt-1 text-sm font-semibold text-black/55">
-                    {responseLabel(tutor.responseMinutes)}
-                  </p>
-                ) : null}
-              </div>
-              {isSignedIn && !isOwnProfile ? (
-                <button
-                  type="button"
-                  onClick={onToggleSave}
-                  aria-label={saved ? "Retirer des favoris" : "Ajouter aux favoris"}
-                  className={`text-2xl ${saved ? "text-[#e23b4a]" : "text-black/35"}`}
-                >
-                  {saved ? "♥" : "♡"}
-                </button>
-              ) : null}
-            </div>
-            <dl className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-3">
-              {facts.map((fact) => (
-                <div key={fact.label} className="flex flex-col justify-center rounded-2xl bg-[#f6f7f8] px-4 py-3">
-                  <dt className="text-xs font-semibold text-black/45">{fact.label}</dt>
-                  <dd className="mt-1 truncate font-extrabold">{fact.value}</dd>
+
+      <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_350px] lg:items-start">
+        <div className="min-w-0 space-y-5">
+          <section className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)] sm:p-8">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+              <Portrait
+                name={tutor.name}
+                url={tutor.avatarUrl}
+                className="aspect-square h-28 w-28 shrink-0 rounded-2xl object-cover sm:h-36 sm:w-36"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h1 className="font-display text-3xl font-bold tracking-tight break-words text-[#0f1c1a] sm:text-4xl">
+                      {name}
+                    </h1>
+                    <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs font-semibold">
+                      {tutor.rating > 0 ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[#fff9e6] px-3 py-1 font-bold text-[#8a6500]">
+                          <span className="text-[#e6b800]">★</span>
+                          {tutor.rating.toFixed(1)} · {tutor.reviewCount} avis
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-[#e7f6f1] px-3 py-1 font-bold text-[#087a5c]">
+                          Nouveau professeur
+                        </span>
+                      )}
+                      <span className="rounded-full bg-[#f6f7f8] px-3 py-1 text-black/75">
+                        {placeLabel}
+                      </span>
+                      {replyText ? (
+                        <span className="rounded-full bg-[#e7f6f1] px-3 py-1 text-[#087a5c]">
+                          {replyText}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  {isSignedIn && !isOwnProfile ? (
+                    <button
+                      type="button"
+                      onClick={onToggleSave}
+                      aria-label={saved ? "Retirer des favoris" : "Ajouter aux favoris"}
+                      className={`grid h-10 w-10 shrink-0 place-items-center rounded-full border border-black/10 text-xl transition hover:border-black/25 ${
+                        saved ? "text-[#e23b4a]" : "text-black/35"
+                      }`}
+                    >
+                      {saved ? "♥" : "♡"}
+                    </button>
+                  ) : null}
                 </div>
-              ))}
-            </dl>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <section className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)]">
-          <h2 className="font-extrabold">À propos</h2>
-          <p className="mt-3 text-sm leading-7 text-black/75">{tutor.bio || "Présentation à venir."}</p>
-        </section>
-        <section className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)]">
-          <h2 className="font-extrabold">À propos de {name}</h2>
-          <p className="mt-3 text-sm leading-7 text-black/75">
-            {tutor.aboutTutor || "Présentation à venir."}
-          </p>
-        </section>
-        <section className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)] lg:col-span-2">
-          <h2 className="font-extrabold">À propos du cours</h2>
-          <p className="mt-3 text-sm leading-7 text-black/75">
-            {tutor.aboutCourse || "Le déroulement du cours sera précisé."}
-          </p>
-        </section>
-      </div>
-
-      {diplomaLine(tutor) ? (
-        <section className="mt-4 rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)]">
-          <h2 className="font-extrabold">Diplôme</h2>
-          <p className="mt-3 text-sm leading-7 text-black/75">{diplomaLine(tutor)}</p>
-        </section>
-      ) : null}
-
-      {tutor.hasContactPhone ? (
-        <section className="mt-4 rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)]">
-          <h2 className="font-extrabold">Téléphone</h2>
-          {isSignedIn ? (
-            contactPhone ? (
-              <p className="mt-3 text-sm leading-7">
-                <a
-                  href={`tel:${contactPhone.replace(/\s+/g, "")}`}
-                  className="font-extrabold text-[#0d9f7a] hover:underline"
-                >
-                  {contactPhone}
-                </a>
-              </p>
-            ) : (
-              <p className="mt-3 text-sm text-black/50">Chargement du numéro…</p>
-            )
-          ) : (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-extrabold tracking-wider text-black/60 select-none blur-[5px]" aria-hidden="true">
-                0470 12 34 56
-              </p>
-              <Link
-                href={`/connexion?next=${encodeURIComponent(`/tuteur/${tutor.id}`)}`}
-                className="rounded-full bg-[#12382c] px-4 py-2 text-xs font-extrabold text-white transition hover:bg-[#087a5c]"
-              >
-                Connecte-toi pour voir le numéro
-              </Link>
-            </div>
-          )}
-        </section>
-      ) : null}
-
-      <section className="mt-4 rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)]">
-        <h2 className="font-extrabold">Commentaires</h2>
-        {reviews.length ? (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            {reviews.map((review) => (
-              <div key={review.id} className="text-sm leading-6 text-black/75">
-                <p>
-                  <span className="text-[#e6b800]">{"★".repeat(review.rating)}</span>{" "}
-                  {review.comment || "Avis sans commentaire."}
-                </p>
-                {review.reply ? (
-                  <p className="mt-2 rounded-2xl bg-[#f6f7f8] px-3 py-2 text-black/70">
-                    <span className="font-extrabold">{name} répond. </span>
-                    {review.reply}
-                  </p>
-                ) : null}
               </div>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-3 text-sm text-black/50">Pas encore de commentaire.</p>
-        )}
-      </section>
+            </div>
 
-      <div className="sticky bottom-4 mt-6">
-        {isOwnProfile ? (
-          <div className="rounded-3xl border border-black/10 bg-white p-4 text-center shadow-[0_8px_30px_rgba(15,28,26,0.08)]">
-            <p className="text-sm font-semibold text-black/75">
-              C’est ton propre profil : tu ne peux pas contacter ton propre profil ni t’envoyer un message.
-            </p>
-            <Link
-              href="/annonce"
-              className="mt-3 grid h-11 w-full place-items-center rounded-full bg-[#12382c] text-sm font-extrabold text-white transition hover:bg-[#087a5c]"
-            >
-              Modifier mon annonce
-            </Link>
-          </div>
-        ) : (
-          <>
-            <button
-              type="button"
-              onClick={contact}
-              className="h-12 w-full rounded-full bg-[#0d9f7a] text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(13,159,122,0.22)] transition hover:bg-[#087a5c]"
-            >
-              {isSignedIn
-                ? "Envoyer un message gratuitement"
-                : "Connecte-toi pour envoyer un message"}
-            </button>
-            {!isSignedIn ? (
-              <p className="mt-2 text-center text-xs text-black/55">
-                Un compte gratuit est requis pour écrire à un professeur.{" "}
-                <Link href="/inscription" className="font-bold text-[#087a5c] underline">
-                  Créer un compte
-                </Link>
+            {tutor.bio ? (
+              <p className="mt-6 border-l-2 border-[#0d9f7a] pl-4 text-base leading-7 font-medium text-[#0f1c1a]/85">
+                {tutor.bio}
               </p>
             ) : null}
-            {error ? <p className="mt-2 text-center text-sm text-[#c23b3b]">{error}</p> : null}
-            <div className="mt-3 flex justify-center">
-              <ReportButton
-                userId={userId}
-                signedIn={Boolean(isSignedIn)}
-                targetType="profile"
-                targetId={tutor.id}
-                label="Signaler ce profil"
-              />
+
+            <div className="mt-6 space-y-3 border-t border-black/5 pt-5">
+              {subjects.length ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-extrabold tracking-wide text-black/40 uppercase">
+                    Matières
+                  </span>
+                  {subjects.map((subject) => (
+                    <span
+                      key={subject}
+                      className="rounded-full bg-[#e7f6f1] px-3 py-1 text-xs font-bold text-[#087a5c]"
+                    >
+                      {subject}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              {tutor.taughtLevels.length || tutor.teachingFormats.length ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-extrabold tracking-wide text-black/40 uppercase">
+                    Public & format
+                  </span>
+                  {tutor.taughtLevels.map((level) => (
+                    <span
+                      key={level}
+                      className="rounded-full bg-[#f6f7f8] px-3 py-1 text-xs font-semibold text-black/70"
+                    >
+                      {level}
+                    </span>
+                  ))}
+                  {tutor.teachingFormats.map((format) => (
+                    <span
+                      key={format}
+                      className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-black/75"
+                    >
+                      {format}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
             </div>
-          </>
-        )}
+          </section>
+
+          <section className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)] sm:p-8">
+            <h2 className="font-display text-xl font-bold text-[#0f1c1a]">
+              À propos de {name}
+            </h2>
+            <p className="mt-3 text-sm leading-7 whitespace-pre-line text-black/75">
+              {tutor.aboutTutor || "Présentation à venir."}
+            </p>
+            {fullDiploma ? (
+              <div className="mt-5 rounded-2xl bg-[#f3fbf8] p-4 ring-1 ring-[#0d9f7a]/15">
+                <p className="text-[11px] font-extrabold tracking-[0.14em] text-[#087a5c] uppercase">
+                  Diplôme & formation
+                </p>
+                {tutor.diplomaTitle ? (
+                  <>
+                    <p className="mt-1 font-bold text-[#0f1c1a]">{tutor.diplomaTitle}</p>
+                    <p className="mt-0.5 text-xs font-medium text-black/60">
+                      {[tutor.diplomaSchool, tutor.diplomaYear].filter(Boolean).join(" · ")}
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-1 text-sm font-semibold text-[#0f1c1a]">{fullDiploma}</p>
+                )}
+              </div>
+            ) : null}
+          </section>
+
+          <section className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)] sm:p-8">
+            <h2 className="font-display text-xl font-bold text-[#0f1c1a]">
+              Déroulement du cours
+            </h2>
+            <p className="mt-3 text-sm leading-7 whitespace-pre-line text-black/75">
+              {tutor.aboutCourse || "Le déroulement du cours sera précisé."}
+            </p>
+          </section>
+
+          <section className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.05)] sm:p-8">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-display text-xl font-bold text-[#0f1c1a]">
+                Avis des élèves
+              </h2>
+              {reviews.length ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#fff9e6] px-3 py-1 text-xs font-bold text-[#8a6500]">
+                  <span className="text-[#e6b800]">★</span>
+                  {tutor.rating.toFixed(1)} · {tutor.reviewCount} avis
+                </span>
+              ) : null}
+            </div>
+
+            {reviews.length ? (
+              <div className="mt-5 space-y-4">
+                {reviews.map((review) => {
+                  const dateLabel = formatReviewDate(review.createdAt);
+                  return (
+                    <article key={review.id} className="rounded-2xl bg-[#f6f7f8] p-4 sm:p-5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm tracking-wide">
+                          <span className="text-[#e6b800]">{"★".repeat(review.rating)}</span>
+                          <span className="text-black/15">{"★".repeat(5 - review.rating)}</span>
+                        </span>
+                        {dateLabel ? (
+                          <span className="text-xs font-medium text-black/45 capitalize">
+                            {dateLabel}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-black/80">
+                        {review.comment || "Avis sans commentaire."}
+                      </p>
+                      {review.reply ? (
+                        <div className="mt-3 rounded-xl border border-black/5 bg-white p-3 text-sm leading-6 text-black/75">
+                          <span className="font-extrabold text-[#12382c]">
+                            Réponse de {name} :{" "}
+                          </span>
+                          {review.reply}
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-black/50">
+                Pas encore d’avis. Échange avec {name} pour être le premier à laisser un retour.
+              </p>
+            )}
+          </section>
+        </div>
+
+        <aside className="space-y-4 lg:sticky lg:top-[calc(var(--site-header,3.5rem)+1.5rem)]">
+          <div className="rounded-3xl bg-white p-6 shadow-[0_12px_40px_rgba(15,28,26,0.07)] ring-1 ring-black/5">
+            <div className="flex items-baseline justify-between gap-2">
+              <p>
+                <span className="font-display text-4xl font-bold text-[#0f1c1a]">
+                  {formatRate(tutor.hourlyRate)} €
+                </span>
+                <span className="ml-1 text-sm font-semibold text-black/50">/ heure</span>
+              </p>
+              <span className="rounded-full bg-[#e7f6f1] px-3 py-1 text-xs font-bold text-[#087a5c]">
+                Sans commission
+              </span>
+            </div>
+
+            <dl className="mt-5 space-y-3 border-t border-black/5 pt-4 text-sm">
+              <div className="flex items-start justify-between gap-4">
+                <dt className="shrink-0 text-black/50">Commune</dt>
+                <dd className="text-right font-semibold text-[#0f1c1a]">{placeLabel}</dd>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <dt className="shrink-0 text-black/50">Format</dt>
+                <dd className="text-right font-semibold text-[#0f1c1a]">
+                  {tutor.teachingFormats.join(" · ") || "À préciser"}
+                </dd>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <dt className="shrink-0 text-black/50">Niveaux</dt>
+                <dd className="text-right font-semibold text-[#0f1c1a]">
+                  {tutor.taughtLevels.join(", ") || "À préciser"}
+                </dd>
+              </div>
+              {replyText ? (
+                <div className="flex items-start justify-between gap-4">
+                  <dt className="shrink-0 text-black/50">Réactivité</dt>
+                  <dd className="text-right font-semibold text-[#087a5c]">{replyText}</dd>
+                </div>
+              ) : null}
+            </dl>
+
+            {tutor.hasContactPhone ? (
+              <div className="mt-5 border-t border-black/5 pt-4">
+                <p className="text-xs font-extrabold tracking-wide text-black/45 uppercase">
+                  Téléphone
+                </p>
+                {isSignedIn ? (
+                  contactPhone ? (
+                    <a
+                      href={`tel:${contactPhone.replace(/\s+/g, "")}`}
+                      className="mt-2 flex items-center justify-between rounded-2xl bg-[#f3fbf8] px-4 py-3 text-sm font-extrabold text-[#087a5c] ring-1 ring-[#0d9f7a]/20 transition hover:bg-[#e7f6f1]"
+                    >
+                      <span>{contactPhone}</span>
+                      <span className="text-xs">Appeler →</span>
+                    </a>
+                  ) : (
+                    <p className="mt-2 text-sm text-black/50">Chargement du numéro…</p>
+                  )
+                ) : (
+                  <div className="mt-2 rounded-2xl bg-[#f6f7f8] p-3.5">
+                    <p
+                      className="text-sm font-extrabold tracking-wider text-black/60 select-none blur-[5px]"
+                      aria-hidden="true"
+                    >
+                      0470 12 34 56
+                    </p>
+                    <Link
+                      href={`/connexion?next=${encodeURIComponent(`/tuteur/${tutor.id}`)}`}
+                      className="mt-2.5 inline-block rounded-full bg-[#12382c] px-4 py-2 text-xs font-extrabold text-white transition hover:bg-[#087a5c]"
+                    >
+                      Connecte-toi pour voir le numéro
+                    </Link>
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            <div className="mt-5 border-t border-black/5 pt-5">
+              {isOwnProfile ? (
+                <div className="rounded-2xl bg-[#f6f7f8] p-4 text-center">
+                  <p className="text-xs leading-5 font-semibold text-black/70">
+                    C’est ton propre profil : tu ne peux pas contacter ton propre profil ni t’envoyer un message.
+                  </p>
+                  <Link
+                    href="/annonce"
+                    className="mt-3 grid h-11 w-full place-items-center rounded-full bg-[#12382c] text-sm font-extrabold text-white transition hover:bg-[#087a5c]"
+                  >
+                    Modifier mon annonce
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={contact}
+                    className="h-12 w-full rounded-full bg-[#0d9f7a] text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(13,159,122,0.22)] transition hover:bg-[#087a5c]"
+                  >
+                    {isSignedIn
+                      ? "Envoyer un message gratuitement"
+                      : "Connecte-toi pour envoyer un message"}
+                  </button>
+                  {!isSignedIn ? (
+                    <p className="mt-2.5 text-center text-xs text-black/55">
+                      Un compte gratuit est requis pour écrire à un professeur.{" "}
+                      <Link href="/inscription" className="font-bold text-[#087a5c] underline">
+                        Créer un compte
+                      </Link>
+                    </p>
+                  ) : null}
+                </>
+              )}
+              {error ? <p className="mt-3 text-center text-sm text-[#c23b3b]">{error}</p> : null}
+            </div>
+
+            {!isOwnProfile ? (
+              <div className="mt-4 flex justify-center border-t border-black/5 pt-4">
+                <ReportButton
+                  userId={userId}
+                  signedIn={Boolean(isSignedIn)}
+                  targetType="profile"
+                  targetId={tutor.id}
+                  label="Signaler ce profil"
+                />
+              </div>
+            ) : null}
+          </div>
+        </aside>
       </div>
+
+      {!isOwnProfile ? (
+        <div className="sticky bottom-4 z-20 mt-6 lg:hidden">
+          <button
+            type="button"
+            onClick={contact}
+            className="h-12 w-full rounded-full bg-[#0d9f7a] text-sm font-extrabold text-white shadow-[0_12px_32px_rgba(13,159,122,0.3)] transition hover:bg-[#087a5c]"
+          >
+            {isSignedIn
+              ? `Contacter ${name} · ${formatRate(tutor.hourlyRate)} €/h`
+              : "Connecte-toi pour envoyer un message"}
+          </button>
+        </div>
+      ) : null}
     </main>
   );
 }

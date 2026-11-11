@@ -143,34 +143,59 @@ export default function AnnouncementForm() {
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!userId) return;
-    if (!specialties.length) {
-      setError("Choisis au moins une matière. C’est ce qui publie l’annonce.");
+    const resolvedPhoto = photoUrl || (user?.hasImage ? user.imageUrl : null);
+    if (!photoFile && !resolvedPhoto) {
+      setError("Ajoute une photo de profil avant de publier.");
+      return;
+    }
+    const resolved = place ?? resolveLocationQuery(city);
+    if (!city.trim() || !resolved) {
+      setError("Choisis ta commune dans la liste.");
+      return;
+    }
+    if (!bio.trim()) {
+      setError("Rédige ton accroche.");
       return;
     }
     if (countWords(bio) > 24) {
       setError("L’accroche ne doit pas dépasser 24 mots.");
       return;
     }
+    if (!aboutTutor.trim()) {
+      setError("Remplis la section « À propos de toi ».");
+      return;
+    }
     if (countWords(aboutTutor) > 80) {
       setError("La section « À propos de toi » ne doit pas dépasser 80 mots.");
+      return;
+    }
+    const diploma = diplomaPayload(diplomaTitle, diplomaSchool, diplomaYear, true);
+    if ("error" in diploma) {
+      setError(diploma.error ?? "Diplôme invalide.");
+      return;
+    }
+    if (!aboutCourse.trim()) {
+      setError("Remplis la section « À propos du cours ».");
       return;
     }
     if (countWords(aboutCourse) > 80) {
       setError("La section « À propos du cours » ne doit pas dépasser 80 mots.");
       return;
     }
+    if (!specialties.length) {
+      setError("Choisis au moins une matière.");
+      return;
+    }
+    if (!levels.length) {
+      setError("Choisis au moins un niveau enseigné.");
+      return;
+    }
+    if (!formats.length) {
+      setError("Choisis au moins un format de cours.");
+      return;
+    }
     if (!Number.isFinite(rate) || rate < 5 || rate > 150) {
       setError("Le tarif horaire doit être compris entre 5 € et 150 €.");
-      return;
-    }
-    const diploma = diplomaPayload(diplomaTitle, diplomaSchool, diplomaYear);
-    if ("error" in diploma) {
-      setError(diploma.error ?? "Diplôme invalide.");
-      return;
-    }
-    const resolved = place ?? resolveLocationQuery(city);
-    if (city.trim() && !resolved) {
-      setError("Choisis une commune dans la liste.");
       return;
     }
     const cleanPhone = contactPhone.trim();
@@ -189,7 +214,7 @@ export default function AnnouncementForm() {
       }
       const avatarUrl = photoFile
         ? await uploadAnnouncementPhoto(userId, photoFile)
-        : photoUrl || user?.imageUrl || null;
+        : resolvedPhoto;
       await saveAnnouncement(userId, {
         fullName: fullName || "Tuteur",
         bio: bio.trim(),
@@ -256,7 +281,7 @@ export default function AnnouncementForm() {
   }
 
   const name = user?.fullName || "Toi";
-  const shownPhoto = photoUrl || user?.imageUrl || null;
+  const shownPhoto = photoUrl || (user?.hasImage ? user.imageUrl : null);
   const accountPhone =
     (typeof user?.unsafeMetadata?.phone === "string" ? user.unsafeMetadata.phone.trim() : "") ||
     user?.primaryPhoneNumber?.phoneNumber ||
@@ -439,7 +464,7 @@ export default function AnnouncementForm() {
           <Section
             step="5"
             title="Matières, niveaux, format"
-            hint="Une matière suffit pour publier. Les niveaux et le format sont ceux des filtres."
+            hint="Choisis au moins une matière, un niveau et un format. Toutes les sections (sauf le téléphone) sont obligatoires."
           >
             <Picker
               title="Matières"

@@ -117,12 +117,43 @@ export function getSupabase() {
   return client;
 }
 
-export function announcementPublished(tutor: Pick<Tutor, "specialties"> | null) {
+export function announcementPublished(
+  tutor:
+    | Pick<
+        Tutor,
+        | "specialties"
+        | "bio"
+        | "aboutTutor"
+        | "aboutCourse"
+        | "city"
+        | "teachingFormats"
+        | "taughtLevels"
+        | "diplomaTitle"
+        | "diplomaSchool"
+        | "diplomaYear"
+        | "hourlyRate"
+        | "avatarUrl"
+      >
+    | null
+) {
+  if (!tutor) return false;
+  const hasSpecialty = tutor.specialties.some((item) => {
+    const name = item.trim().toLowerCase();
+    return name && name !== "matière";
+  });
   return Boolean(
-    tutor?.specialties.some((item) => {
-      const name = item.trim().toLowerCase();
-      return name && name !== "matière";
-    })
+    hasSpecialty &&
+      tutor.avatarUrl &&
+      tutor.city?.trim() &&
+      tutor.bio.trim() &&
+      tutor.aboutTutor.trim() &&
+      tutor.aboutCourse.trim() &&
+      tutor.diplomaTitle.trim() &&
+      tutor.diplomaSchool.trim() &&
+      tutor.diplomaYear != null &&
+      tutor.teachingFormats.length > 0 &&
+      tutor.taughtLevels.length > 0 &&
+      tutor.hourlyRate >= 5
   );
 }
 
@@ -1018,6 +1049,24 @@ export async function saveAnnouncement(
 ) {
   const db = getSupabase();
   const existing = await fetchMyTutorProfile(clerkId);
+  const avatar = input.avatarUrl ?? existing?.avatarUrl ?? null;
+  if (
+    !avatar ||
+    !input.city.trim() ||
+    !input.bio.trim() ||
+    !input.aboutTutor.trim() ||
+    !input.aboutCourse.trim() ||
+    !input.specialties.length ||
+    !input.teachingFormats.length ||
+    !input.taughtLevels.length ||
+    !input.diplomaTitle?.trim() ||
+    !input.diplomaSchool?.trim() ||
+    input.diplomaYear == null ||
+    !Number.isFinite(input.hourlyRate) ||
+    input.hourlyRate < 5
+  ) {
+    throw new Error("Toutes les informations de l’annonce sont obligatoires.");
+  }
   const payload = {
     full_name: input.fullName.trim() || "Tuteur",
     bio: input.bio.trim(),
@@ -1037,7 +1086,7 @@ export async function saveAnnouncement(
     diploma_year: input.diplomaYear ?? null,
     contact_phone: input.contactPhone?.trim() || null,
     role: "tutor",
-    ...(input.avatarUrl ? { avatar_url: input.avatarUrl } : {}),
+    ...(avatar ? { avatar_url: avatar } : {}),
   };
   const query = existing
     ? db.from("profiles").update(payload).eq("clerk_id", clerkId)

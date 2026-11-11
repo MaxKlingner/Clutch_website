@@ -9,7 +9,7 @@ import BackLink from "@/components/site/BackLink";
 import TutorCard from "@/components/site/TutorCard";
 import { useRequireUser } from "@/components/site/useRequireUser";
 import { fetchFavorites, toggleFavorite, type Tutor } from "@/lib/db";
-import { suggestLocations } from "@/lib/locations";
+import { resolveLocationQuery, suggestLocations } from "@/lib/locations";
 import { formatBirthInput, isAdultBirthDate } from "@/lib/trust";
 
 const field =
@@ -92,6 +92,11 @@ export function Welcome() {
         onSubmit={async (event) => {
           event.preventDefault();
           if (!userId || !user) return;
+          const resolvedCity = resolveLocationQuery(city);
+          if (!city.trim() || !resolvedCity) {
+            setError("Choisis ta ville ou commune dans la liste.");
+            return;
+          }
           if (!isAdultBirthDate(birthDate)) {
             setError("Il faut avoir 18 ans pour ouvrir un compte. Écris la date en JJ/MM/AAAA.");
             return;
@@ -114,7 +119,7 @@ export function Welcome() {
               role,
               firstName: user?.firstName || "",
               lastName: user?.lastName || "",
-              city,
+              city: resolvedCity.name,
               email: user.primaryEmailAddress?.emailAddress || null,
             });
             router.replace(role === "tutor" ? "/annonce" : "/");

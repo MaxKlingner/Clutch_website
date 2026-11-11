@@ -180,14 +180,29 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
 
   async function onSave() {
     if (!dirty || saving) return;
-    setSaving(true);
     setError("");
     setMessage("");
-    if (birthDate.trim() && !isAdultBirthDate(birthDate)) {
-      setError("Il faut avoir 18 ans. La date s’écrit JJ/MM/AAAA.");
-      setSaving(false);
+    if (!gender) {
+      setError("Choisis ton genre.");
       return;
     }
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("Indique ton prénom et ton nom.");
+      return;
+    }
+    if (!isAdultBirthDate(birthDate)) {
+      setError("Indique une date de naissance valide (18 ans minimum, JJ/MM/AAAA).");
+      return;
+    }
+    if (phone.trim().replace(/\D/g, "").length < 6) {
+      setError("Indique un numéro de téléphone valide.");
+      return;
+    }
+    if (!address.trim()) {
+      setError("Indique ton adresse postale.");
+      return;
+    }
+    setSaving(true);
     try {
       await user.update({
         firstName: firstName.trim(),
