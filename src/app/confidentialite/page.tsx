@@ -17,7 +17,7 @@ export default function Page() {
         photo, la commune, les matières, les niveaux, les formats, le tarif horaire, les textes de
         présentation et le diplôme éventuel. Si le professeur choisit d’ajouter un numéro de
         téléphone sur son annonce, celui-ci reste masqué aux visiteurs sans compte et n’est visible
-        que par les membres connectés. Les discussions, confirmations de cours, avis, réponses et
+        que par les membres connectés. Les discussions, avis, réponses et
         signalements sont également enregistrés.
       </p>
       <p>

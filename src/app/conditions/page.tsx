@@ -29,9 +29,9 @@ export default function Page() {
         modalités éventuelles sont convenus directement entre particuliers, en dehors du site.
       </p>
       <p>
-        Un avis ne peut être laissé par l’élève ou le parent qu’après confirmation que le cours a eu
-        lieu dans la conversation (« Le cours a été donné »). Le professeur peut répondre sous
-        l’avis. L’avis et la réponse restent visibles sur la fiche.
+        Un avis ne peut être laissé par l’élève ou le parent qu’après un échange effectif de
+        messages dans la conversation. Le professeur peut répondre sous l’avis. L’avis et la
+        réponse restent visibles sur la fiche.
       </p>
       <p>
         Le délai de réponse affiché correspond au temps médian entre le premier message reçu et la

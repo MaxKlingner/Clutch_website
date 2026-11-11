@@ -141,7 +141,6 @@ export default function PublicTutor({
       value:
         tutor.rating > 0 ? `${tutor.rating.toFixed(1)} · ${tutor.reviewCount}` : "Nouveau",
     },
-    { label: "Cours donnés", value: String(tutor.lessonsGiven) },
     { label: "Ville", value: tutor.city || "À préciser" },
   ];
 
@@ -185,7 +184,7 @@ export default function PublicTutor({
                 </button>
               ) : null}
             </div>
-            <dl className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
+            <dl className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-3">
               {facts.map((fact) => (
                 <div key={fact.label} className="flex flex-col justify-center rounded-2xl bg-[#f6f7f8] px-4 py-3">
                   <dt className="text-xs font-semibold text-black/45">{fact.label}</dt>

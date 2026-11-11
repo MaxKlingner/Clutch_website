@@ -10,13 +10,13 @@ import { useRequireUser } from "@/components/site/useRequireUser";
 import {
   acceptMatch,
   declineMatch,
+  exchangeReady,
   fetchMatch,
   fetchMessages,
   fetchReviewForMatch,
   fetchTutor,
   fetchUserMatches,
   isMatchUnread,
-  markLessonGiven,
   markMatchRead,
   sendText,
   startConversation,
@@ -216,8 +216,6 @@ function ThreadView({
   const [reviewComment, setReviewComment] = useState("");
   const [reviewBusy, setReviewBusy] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
-  const [lessonGivenAt, setLessonGivenAt] = useState<string | null>(null);
-  const [lessonBusy, setLessonBusy] = useState(false);
   const listEndRef = useRef<HTMLDivElement>(null);
 
   const activeMatch = matchId || "";
@@ -232,8 +230,9 @@ function ThreadView({
     isTutorRef.current = isTutorInThread;
   }, [isTutorInThread]);
   const tutorCanWrite = !isOwnTutorTarget && (!isTutorInThread || !activeMatch || status === "accepted");
-  const canMarkLesson = Boolean(!isTutorInThread && activeMatch && status === "accepted" && !lessonGivenAt);
-  const canReview = Boolean(!isTutorInThread && activeMatch && tutor && lessonGivenAt && !review);
+  const hasExchange = exchangeReady(messages);
+  const activeReview = activeMatch && review?.matchId === activeMatch ? review : null;
+  const canReview = Boolean(!isTutorInThread && activeMatch && tutor && hasExchange && !activeReview);
 
   useEffect(() => {
     let cancel = false;
@@ -252,7 +251,6 @@ function ThreadView({
           if (cancel || !row) return;
           setMatch(row);
           setStatus(row.status);
-          setLessonGivenAt(row.lessonGivenAt);
           if (row.tutor) setTutor(row.tutor);
           const asTutor = Boolean(
             (myTutorProfileId && row.tutorId === myTutorProfileId) ||
@@ -301,7 +299,7 @@ function ThreadView({
   }, [activeMatch, userId, onRead]);
 
   useEffect(() => {
-    if (!activeMatch || !lessonGivenAt) return;
+    if (!activeMatch) return;
     let cancel = false;
     fetchReviewForMatch(activeMatch)
       .then((row) => {
@@ -313,7 +311,7 @@ function ThreadView({
     return () => {
       cancel = true;
     };
-  }, [activeMatch, lessonGivenAt]);
+  }, [activeMatch]);
 
   useEffect(() => {
     listEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -327,25 +325,6 @@ function ThreadView({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [reviewOpen]);
-
-  async function onMarkLesson() {
-    if (!activeMatch || lessonBusy) return;
-    setLessonBusy(true);
-    setError("");
-    try {
-      const updated = await markLessonGiven(activeMatch, userId);
-      setLessonGivenAt(updated.lessonGivenAt);
-      if (!isTutorInThread) {
-        setReviewRating(5);
-        setReviewComment("");
-        setReviewOpen(true);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Confirmation impossible.");
-    } finally {
-      setLessonBusy(false);
-    }
-  }
 
   async function onSubmitReview(event: React.FormEvent) {
     event.preventDefault();
@@ -520,27 +499,17 @@ function ThreadView({
       </div>
 
       {error ? <p className="px-4 text-sm text-[#c23b3b]">{error}</p> : null}
-      {activeMatch && (canMarkLesson || lessonGivenAt) ? (
+      {activeMatch && (canReview || activeReview) ? (
         <div className="border-t border-black/5 bg-white px-4 py-3">
-          {canMarkLesson ? (
-            <button
-              type="button"
-              disabled={lessonBusy}
-              onClick={onMarkLesson}
-              className="rounded-full bg-[#12382c] px-4 py-2 text-sm font-extrabold text-white disabled:opacity-50"
-            >
-              {lessonBusy ? "Confirmation…" : "Le cours a été donné"}
-            </button>
-          ) : null}
-          {lessonGivenAt && !isTutorInThread && tutor ? (
-            <div className={canMarkLesson ? "mt-3" : undefined}>
-              {review ? (
+          {!isTutorInThread && tutor ? (
+            <div>
+              {activeReview ? (
                 <p className="text-sm leading-6 text-black/70">
-                  <span className="text-[#e6b800]">{"★".repeat(review.rating)}</span>{" "}
-                  {review.comment || "Avis envoyé."}
-                  {review.reply ? (
+                  <span className="text-[#e6b800]">{"★".repeat(activeReview.rating)}</span>{" "}
+                  {activeReview.comment || "Avis envoyé."}
+                  {activeReview.reply ? (
                     <span className="mt-1 block text-black/55">
-                      {firstName(tutor.name)} répond : {review.reply}
+                      {firstName(tutor.name)} répond : {activeReview.reply}
                     </span>
                   ) : null}
                 </p>
@@ -559,14 +528,11 @@ function ThreadView({
               )}
             </div>
           ) : null}
-          {lessonGivenAt && isTutorInThread && review ? (
+          {isTutorInThread && activeReview ? (
             <p className="text-sm leading-6 text-black/70">
-              Avis reçu : <span className="text-[#e6b800]">{"★".repeat(review.rating)}</span>{" "}
-              {review.comment || "Sans commentaire."}
+              Avis reçu : <span className="text-[#e6b800]">{"★".repeat(activeReview.rating)}</span>{" "}
+              {activeReview.comment || "Sans commentaire."}
             </p>
-          ) : null}
-          {lessonGivenAt && isTutorInThread && !review ? (
-            <p className="text-sm text-black/55">Cours confirmé. En attente de l’avis de l’élève.</p>
           ) : null}
         </div>
       ) : null}
@@ -584,7 +550,7 @@ function ThreadView({
             onClick={(event) => event.stopPropagation()}
           >
             <h2 id="review-modal-title" className="font-display text-xl font-bold">
-              Comment s’est passé le cours ?
+              Comment s’est passé cet échange ?
             </h2>
             <p className="mt-1 text-sm text-black/55">
               Ton avis apparaît sur la fiche du professeur.

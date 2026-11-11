@@ -21,7 +21,7 @@ export const LEVELS = [
 export const FORMATS = ["Face à face", "À distance"] as const;
 
 const PROFILE_COLUMNS =
-  "id, clerk_id, full_name, subject, hourly_rate, rating, review_count, lessons_given, role, bio, about_tutor, about_course, specialties, study_year, avatar_url, city, postal_code, latitude, longitude, teaching_formats, taught_levels, diploma_title, diploma_school, diploma_year, response_minutes, has_contact_phone, created_at";
+  "id, clerk_id, full_name, subject, hourly_rate, rating, review_count, role, bio, about_tutor, about_course, specialties, study_year, avatar_url, city, postal_code, latitude, longitude, teaching_formats, taught_levels, diploma_title, diploma_school, diploma_year, response_minutes, has_contact_phone, created_at";
 
 export type Tutor = {
   id: string;
@@ -35,7 +35,6 @@ export type Tutor = {
   hourlyRate: number;
   rating: number;
   reviewCount: number;
-  lessonsGiven: number;
   avatarUrl: string | null;
   city: string | null;
   postalCode: string | null;
@@ -66,8 +65,6 @@ export type Match = {
   tutorId: string;
   status: string;
   createdAt: string;
-  lessonGivenAt: string | null;
-  lessonGivenBy: string | null;
   parentLastReadAt: string | null;
   tutorLastReadAt: string | null;
   lastMessageAt: string | null;
@@ -77,7 +74,7 @@ export type Match = {
   parentName: string;
 };
 
-const MATCH_COLUMNS = `id, parent_id, tutor_id, status, created_at, lesson_given_at, lesson_given_by, parent_last_read_at, tutor_last_read_at, tutor:profiles (${PROFILE_COLUMNS})`;
+const MATCH_COLUMNS = `id, parent_id, tutor_id, status, created_at, parent_last_read_at, tutor_last_read_at, tutor:profiles (${PROFILE_COLUMNS})`;
 const MESSAGE_COLUMNS = "id, match_id, sender_id, sender_role, content, created_at, message_type";
 
 export type ChatMessage = {
@@ -141,7 +138,6 @@ function mapTutor(row: Record<string, unknown> | null): Tutor | null {
   const hourlyRate = Number(row.hourly_rate ?? 0);
   const rating = Number(row.rating ?? 0);
   const reviewCount = Number(row.review_count ?? 0);
-  const lessonsGiven = Number(row.lessons_given ?? 0);
   const latitude = Number(row.latitude);
   const longitude = Number(row.longitude);
   return {
@@ -158,7 +154,6 @@ function mapTutor(row: Record<string, unknown> | null): Tutor | null {
     hourlyRate: Number.isFinite(hourlyRate) ? hourlyRate : 0,
     rating: Number.isFinite(rating) ? rating : 0,
     reviewCount: Number.isFinite(reviewCount) ? reviewCount : 0,
-    lessonsGiven: Number.isFinite(lessonsGiven) ? Math.max(0, Math.round(lessonsGiven)) : 0,
     avatarUrl: row.avatar_url ? String(row.avatar_url) : null,
     city: row.city ? String(row.city) : null,
     postalCode: row.postal_code ? String(row.postal_code) : null,
@@ -207,8 +202,6 @@ function mapMatch(
     tutorId: String(row.tutor_id),
     status: String(row.status ?? "pending"),
     createdAt: String(row.created_at ?? ""),
-    lessonGivenAt: row.lesson_given_at ? String(row.lesson_given_at) : null,
-    lessonGivenBy: row.lesson_given_by ? String(row.lesson_given_by) : null,
     parentLastReadAt: row.parent_last_read_at ? String(row.parent_last_read_at) : null,
     tutorLastReadAt: row.tutor_last_read_at ? String(row.tutor_last_read_at) : null,
     lastMessageAt: latest?.createdAt ?? null,
@@ -311,31 +304,6 @@ export function exchangeReady(messages: { senderRole: string }[]) {
   return roles.has("parent") && roles.has("tutor");
 }
 
-export async function markLessonGiven(matchId: string, byClerkId: string) {
-  const match = await fetchMatch(matchId);
-  if (!match) throw new Error("Conversation introuvable.");
-  if (match.parentId !== byClerkId || match.tutor?.clerkId === byClerkId) {
-    throw new Error("Seul l’élève ou le parent peut confirmer que le cours a été donné.");
-  }
-  if (match.lessonGivenAt) return match;
-
-  const db = getSupabase();
-  const now = new Date().toISOString();
-  const { data, error } = await db
-    .from("matches")
-    .update({ lesson_given_at: now, lesson_given_by: byClerkId })
-    .eq("id", matchId)
-    .is("lesson_given_at", null)
-    .select(MATCH_COLUMNS)
-    .maybeSingle();
-  if (error) throw new Error(error.message || "Impossible de confirmer le cours.");
-  if (data) return mapMatch(data as Record<string, unknown>, match.parentName);
-
-  const refreshed = await fetchMatch(matchId);
-  if (!refreshed) throw new Error("Conversation introuvable.");
-  return refreshed;
-}
-
 export async function submitReview(input: {
   matchId: string;
   reviewerId: string;
@@ -347,12 +315,15 @@ export async function submitReview(input: {
   if (!Number.isInteger(stars) || stars < 1 || stars > 5) {
     throw new Error("La note doit être un entier entre 1 et 5.");
   }
-  const match = await fetchMatch(input.matchId);
-  if (!match?.lessonGivenAt) {
-    throw new Error("Un avis n’est possible qu’après un cours.");
-  }
-  if (match.parentId !== input.reviewerId || match.tutor?.clerkId === input.reviewerId) {
+  const [match, messages] = await Promise.all([
+    fetchMatch(input.matchId),
+    fetchMessages(input.matchId),
+  ]);
+  if (!match || match.parentId !== input.reviewerId || match.tutor?.clerkId === input.reviewerId) {
     throw new Error("Seul l’élève ou le parent peut laisser un avis.");
+  }
+  if (!exchangeReady(messages)) {
+    throw new Error("Un avis n’est possible qu’après un échange.");
   }
   const db = getSupabase();
   const { error } = await db.from("reviews").insert({
@@ -365,10 +336,10 @@ export async function submitReview(input: {
   if (error) {
     const text = error.message || "";
     if (text.toLowerCase().includes("duplicate") || text.toLowerCase().includes("unique")) {
-      throw new Error("Tu as déjà laissé un avis pour ce cours.");
+      throw new Error("Tu as déjà laissé un avis.");
     }
-    if (text.toLowerCase().includes("cours") || text.toLowerCase().includes("échange")) {
-      throw new Error("Un avis n’est possible qu’après un cours.");
+    if (text.toLowerCase().includes("échange")) {
+      throw new Error("Un avis n’est possible qu’après un échange.");
     }
     throw new Error(text || "Impossible d’enregistrer l’avis.");
   }

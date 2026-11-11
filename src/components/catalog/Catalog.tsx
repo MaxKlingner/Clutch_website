@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useAuth } from "@clerk/clerk-react";
 import { useEffect, useMemo, useState } from "react";
 import FilterBar from "@/components/catalog/FilterBar";
@@ -164,23 +163,13 @@ export default function Catalog({
         </div>
       </div>
 
-      <div className="mt-1 flex flex-wrap items-baseline justify-between gap-2">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">
-            Professeurs disponibles
-          </h1>
-          <p className="mt-1 text-sm text-black/60">
-            Mise en relation directe et 100 % gratuite entre élèves et professeurs particuliers, sans commission.
-          </p>
-        </div>
-        {!isSignedIn ? (
-          <Link
-            href="/inscription"
-            className="text-sm font-bold text-[#087a5c] hover:underline"
-          >
-            Proposer des cours gratuitement →
-          </Link>
-        ) : null}
+      <div className="mt-1">
+        <h1 className="font-display text-3xl font-bold tracking-tight">
+          Professeurs disponibles
+        </h1>
+        <p className="mt-1 text-sm text-black/60">
+          Mise en relation directe et 100 % gratuite entre élèves et professeurs particuliers, sans commission.
+        </p>
       </div>
 
       {error ? <p className="mt-4 text-sm text-[#c23b3b]">{error}</p> : null}

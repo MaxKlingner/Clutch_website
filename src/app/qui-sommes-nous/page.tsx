@@ -12,7 +12,7 @@ export default function Page() {
         matières, leur commune, leurs avis, puis tu démarres la conversation quand tu es prêt.
       </p>
       <p>
-        Le site et l’app partagent le même espace : annonces, messages, confirmation de cours et avis.
+        Le site et l’app partagent le même espace : annonces, messages et avis.
       </p>
     </RulesPage>
   );
