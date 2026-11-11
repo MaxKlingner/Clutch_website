@@ -21,7 +21,7 @@ import {
   saveAccountIdentity,
   saveAnnouncement,
   setActiveRole,
-  SPECIALTY_GROUPS,
+  SPECIALTIES,
   uploadAnnouncementPhoto,
   type Review,
   type Tutor,
@@ -63,7 +63,6 @@ export default function AnnouncementForm() {
   const placeRoot = useRef<HTMLDivElement>(null);
 
   const [specialties, setSpecialties] = useState<string[]>([]);
-  const [subjectFilter, setSubjectFilter] = useState("");
   const [formats, setFormats] = useState<string[]>([]);
   const [levels, setLevels] = useState<string[]>([]);
 
@@ -603,78 +602,24 @@ export default function AnnouncementForm() {
                   </span>
                 ) : null}
               </div>
-
-              {specialties.length ? (
-                <div className="mt-2.5 flex flex-wrap gap-1.5 rounded-2xl bg-[#f3fbf8] p-3 ring-1 ring-[#0d9f7a]/15">
-                  {specialties.map((item) => (
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                {SPECIALTIES.map((option) => {
+                  const on = specialties.includes(option);
+                  return (
                     <button
-                      key={item}
+                      key={option}
                       type="button"
-                      onClick={() => toggle(specialties, item, setSpecialties)}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-[#12382c] px-3 py-1 text-xs font-bold text-white transition hover:bg-[#0d2b22]"
+                      onClick={() => toggle(specialties, option, setSpecialties)}
+                      className={`rounded-full px-3.5 py-2 text-sm font-semibold transition ${
+                        on
+                          ? "bg-[#12382c] text-white shadow-sm"
+                          : "bg-[#f6f7f8] text-black/70 hover:bg-[#eceff1]"
+                      }`}
                     >
-                      <span>{item}</span>
-                      <span aria-hidden="true" className="text-white/70">
-                        ×
-                      </span>
+                      {option}
                     </button>
-                  ))}
-                </div>
-              ) : null}
-
-              <input
-                type="search"
-                value={subjectFilter}
-                onChange={(event) => setSubjectFilter(event.target.value)}
-                placeholder="Filtrer les matières (ex. physique, chimie, néerlandais, comptabilité…)"
-                className={`${field} mt-3`}
-              />
-
-              <div className="mt-4 space-y-4">
-                {(() => {
-                  const needle = fold(subjectFilter);
-                  const groups = SPECIALTY_GROUPS.map((group) => ({
-                    label: group.label,
-                    subjects: group.subjects.filter(
-                      (item) => !needle || fold(item).includes(needle)
-                    ),
-                  })).filter((group) => group.subjects.length > 0);
-
-                  if (!groups.length) {
-                    return (
-                      <p className="rounded-2xl bg-[#f6f7f8] px-4 py-3 text-xs font-medium text-black/50">
-                        Aucune matière ne correspond à « {subjectFilter.trim()} ».
-                      </p>
-                    );
-                  }
-
-                  return groups.map((group) => (
-                    <div key={group.label}>
-                      <p className="text-[11px] font-extrabold tracking-wider text-black/40 uppercase">
-                        {group.label}
-                      </p>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {group.subjects.map((option) => {
-                          const on = specialties.includes(option);
-                          return (
-                            <button
-                              key={option}
-                              type="button"
-                              onClick={() => toggle(specialties, option, setSpecialties)}
-                              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
-                                on
-                                  ? "bg-[#12382c] text-white shadow-sm"
-                                  : "bg-[#f6f7f8] text-black/75 hover:bg-[#eceff1]"
-                              }`}
-                            >
-                              {option}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ));
-                })()}
+                  );
+                })}
               </div>
             </div>
 

@@ -3,87 +3,25 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 export const ROLES = { PARENT: "parent", TUTOR: "tutor" } as const;
 export type Role = (typeof ROLES)[keyof typeof ROLES];
 
-export const SPECIALTY_GROUPS = [
-  {
-    label: "Mathématiques & Sciences",
-    subjects: [
-      "Mathématiques",
-      "Physique",
-      "Chimie",
-      "Biologie",
-      "Sciences",
-      "Sciences appliquées",
-    ],
-  },
-  {
-    label: "Langues & Lettres",
-    subjects: [
-      "Français",
-      "Néerlandais",
-      "Anglais",
-      "Allemand",
-      "Espagnol",
-      "Italien",
-      "Latin",
-      "Grec ancien",
-    ],
-  },
-  {
-    label: "Sciences humaines & philosophie",
-    subjects: [
-      "Histoire",
-      "Géographie",
-      "Étude du milieu",
-      "Sciences sociales",
-      "Sciences politiques",
-      "Philosophie et citoyenneté",
-      "Psychologie",
-      "Pédagogie",
-      "Sociologie",
-      "Morale",
-      "Religion",
-    ],
-  },
-  {
-    label: "Économie, gestion & droit",
-    subjects: [
-      "Économie",
-      "Comptabilité",
-      "Gestion",
-      "Droit",
-      "Marketing",
-    ],
-  },
-  {
-    label: "Informatique, technique & ingénierie",
-    subjects: [
-      "Informatique",
-      "Bureautique",
-      "Électricité",
-      "Électronique",
-      "Électromécanique",
-      "Automatique",
-      "Mécanique",
-      "Dessin technique & DAO",
-      "Construction",
-      "Agronomie & écologie",
-    ],
-  },
-  {
-    label: "Paramédical, arts théoriques & méthode",
-    subjects: [
-      "Anatomie & physiologie",
-      "Diététique & nutrition",
-      "Histoire de l’art",
-      "Arts plastiques",
-      "Musique & solfège",
-      "Communication",
-      "Méthodologie",
-    ],
-  },
-] as const;
-
-export const SPECIALTIES = SPECIALTY_GROUPS.flatMap((group) => [...group.subjects]);
+export const SPECIALTIES = [
+  "Mathématiques",
+  "Français",
+  "Néerlandais",
+  "Anglais",
+  "Physique",
+  "Chimie",
+  "Biologie",
+  "Sciences",
+  "Informatique",
+  "Économie",
+  "Comptabilité",
+  "Espagnol",
+  "Allemand",
+  "Histoire",
+  "Géographie",
+  "Latin",
+  "Méthodologie",
+];
 
 export const LEVELS = [
   "Primaire",
