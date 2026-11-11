@@ -65,7 +65,7 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
 
   return (
     <main className="relative overflow-x-clip">
-      <section className="relative isolate flex min-h-[580px] items-start sm:min-h-[700px]">
+      <section className="relative isolate flex min-h-[600px] items-start sm:min-h-[720px]">
         <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden bg-[#12382c]">
           <Image
             src="/hero-bg.jpg"
@@ -73,10 +73,10 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
             fill
             priority
             sizes="100vw"
-            className="object-cover object-[64%_32%]"
+            className="object-cover object-[64%_30%]"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0f1c1a]/60 via-[#0f1c1a]/42 to-transparent" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_38%,rgba(15,28,26,0.34)_0%,rgba(15,28,26,0.58)_72%,rgba(15,28,26,0.2)_100%)]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0f1c1a]/70 via-[#0f1c1a]/42 to-transparent" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(15,28,26,0.34)_0%,rgba(15,28,26,0.58)_72%,rgba(15,28,26,0.2)_100%)]" />
           <div
             className="absolute inset-x-0 bottom-0 h-56 sm:h-72"
             style={{
@@ -86,7 +86,7 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
           />
         </div>
 
-        <div className="mx-auto w-full max-w-4xl px-4 pt-16 pb-40 text-center sm:px-6 sm:pt-24 sm:pb-52">
+        <div className="mx-auto w-full max-w-4xl px-4 pt-28 pb-40 text-center sm:px-6 sm:pt-36 sm:pb-52">
           <h1 className="mx-auto max-w-3xl font-display text-4xl font-bold tracking-tight text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.32)] sm:text-6xl sm:leading-[1.06]">
             Trouver son professeur,{" "}
             <span className="text-[#7ee8c9]">simplement et gratuitement.</span>
@@ -112,8 +112,8 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
       </section>
 
       {previewTutors.length ? (
-        <section className="mx-auto max-w-6xl px-4 pt-6 pb-12 sm:px-6 sm:pt-8 sm:pb-16">
-          <div className="flex flex-wrap items-end justify-between gap-4">
+        <section className="relative z-10 mx-auto -mt-14 max-w-6xl px-4 pb-6 sm:-mt-20 sm:px-6">
+          <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-xs font-extrabold tracking-[0.16em] text-[#087a5c] uppercase">
                 Aperçu
@@ -131,13 +131,13 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
             </Link>
           </div>
 
-          <div className="mt-8 grid grid-cols-2 gap-4 sm:mt-10 sm:gap-6 lg:grid-cols-4">
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:mt-10 lg:grid-cols-4">
             {previewTutors.map((tutor) => (
               <TutorCard key={tutor.id} tutor={tutor} />
             ))}
           </div>
 
-          <div className="mt-10 text-center sm:mt-12">
+          <div className="mt-8 text-center">
             <Link
               href="/professeurs"
               onClick={openAll}
@@ -149,24 +149,24 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
         </section>
       ) : null}
 
-      <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-16">
-        <div className="grid gap-5 sm:gap-6 md:grid-cols-3">
+      <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+        <div className="grid gap-4 md:grid-cols-3">
           {PILLARS.map((item) => (
             <div
               key={item.step}
-              className="rounded-3xl bg-white p-7 shadow-[0_8px_30px_rgba(15,28,26,0.04)] sm:p-8"
+              className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.04)]"
             >
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#e7f6f1] text-xs font-extrabold text-[#087a5c]">
                 {item.step}
               </span>
               <h3 className="mt-4 font-display text-lg font-bold text-[#0f1c1a]">{item.title}</h3>
-              <p className="mt-2.5 text-sm leading-6 text-black/60">{item.body}</p>
+              <p className="mt-2 text-sm leading-6 text-black/60">{item.body}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 pt-4 pb-16 sm:px-6 sm:pt-6 sm:pb-24">
+      <section className="mx-auto max-w-6xl px-4 pb-14 sm:px-6">
         <div className="flex flex-col items-start justify-between gap-5 rounded-3xl bg-[#12382c] p-7 text-white sm:flex-row sm:items-center sm:p-10">
           <div className="max-w-xl">
             <h2 className="font-display text-2xl font-bold sm:text-3xl">

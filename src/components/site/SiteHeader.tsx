@@ -114,13 +114,39 @@ export default function SiteHeader() {
   const teachHref = isSignedIn ? "/annonce" : "/inscription";
   const teachLabel = Boolean(userId) && hasListing ? "Mon annonce" : "Donner des cours";
   const shownUnread = userId ? unreadCount : 0;
-  const showHeaderSearch = pathname !== "/";
+  const overHero = pathname === "/";
+  const showHeaderSearch = !overHero;
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    if (!overHero) return;
+    const update = () => setScrolled(window.scrollY > 24);
+    const raf = requestAnimationFrame(update);
+    window.addEventListener("scroll", update, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", update);
+    };
+  }, [overHero]);
+
+  const transparentHero = overHero && !scrolled;
 
   return (
-    <header ref={headerRef} className="sticky top-0 z-30 border-b border-black/5 bg-white">
+    <header
+      ref={headerRef}
+      className={
+        overHero
+          ? `fixed inset-x-0 top-0 z-30 transition-colors duration-200 ${
+              transparentHero
+                ? "border-b border-transparent bg-gradient-to-b from-[#0f1c1a]/55 to-transparent text-white"
+                : "border-b border-black/5 bg-white/95 text-[#0f1c1a] backdrop-blur-md"
+            }`
+          : "sticky top-0 z-30 border-b border-black/5 bg-white text-[#0f1c1a]"
+      }
+    >
       <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6">
         <Link href="/" className="shrink-0" aria-label="Clutch">
-          <BrandLogo size={32} />
+          <BrandLogo size={32} onDark={transparentHero} />
         </Link>
         {showHeaderSearch ? (
           <div className="hidden min-w-0 flex-1 md:block">
@@ -131,12 +157,22 @@ export default function SiteHeader() {
           ref={navRef}
           className="ml-auto flex shrink-0 items-center gap-0.5 text-sm font-semibold sm:gap-2"
         >
-          <Link href={teachHref} className="rounded-full px-2.5 py-2 hover:bg-black/5 sm:px-3">
+          <Link
+            href={teachHref}
+            className={`rounded-full px-2.5 py-2 transition sm:px-3 ${
+              transparentHero ? "text-white hover:bg-white/15" : "hover:bg-black/5"
+            }`}
+          >
             {teachLabel}
           </Link>
           {isSignedIn ? (
             <>
-              <IconLink href="/favoris" label="Favoris" active={pathname.startsWith("/favoris")}>
+              <IconLink
+                href="/favoris"
+                label="Favoris"
+                active={pathname.startsWith("/favoris")}
+                onDark={transparentHero}
+              >
                 <HeartIcon filled={pathname.startsWith("/favoris")} />
               </IconLink>
               <IconLink
@@ -144,6 +180,7 @@ export default function SiteHeader() {
                 label={shownUnread ? `Messages (${shownUnread} non lus)` : "Messages"}
                 active={pathname.startsWith("/messages")}
                 badge={shownUnread}
+                onDark={transparentHero}
               >
                 <MessagesIcon />
               </IconLink>
@@ -154,16 +191,20 @@ export default function SiteHeader() {
                   aria-label="Compte"
                   title="Compte"
                   aria-expanded={open}
-                  className={`grid h-10 w-10 place-items-center rounded-full ${
-                    open || pathname.startsWith("/compte")
-                      ? "bg-[#e7f6f1] text-[#087a5c]"
-                      : "text-[#1c1c1c] hover:bg-black/5"
+                  className={`grid h-10 w-10 place-items-center rounded-full transition ${
+                    transparentHero
+                      ? open || pathname.startsWith("/compte")
+                        ? "bg-white/20 text-white"
+                        : "text-white hover:bg-white/15"
+                      : open || pathname.startsWith("/compte")
+                        ? "bg-[#e7f6f1] text-[#087a5c]"
+                        : "text-[#0f1c1a] hover:bg-black/5"
                   }`}
                 >
                   <AccountIcon />
                 </button>
                 {open ? (
-                  <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-white p-2 text-[#1c1c1c] shadow-[0_16px_40px_rgba(15,28,26,0.12)]">
+                  <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-white p-2 text-[#0f1c1a] shadow-[0_16px_40px_rgba(15,28,26,0.12)]">
                     <Link
                       href="/compte"
                       onClick={() => setOpen(false)}
@@ -183,7 +224,14 @@ export default function SiteHeader() {
               </div>
             </>
           ) : (
-            <Link href="/connexion" className="rounded-full bg-[#12382c] px-4 py-2 text-white transition hover:bg-[#087a5c]">
+            <Link
+              href="/connexion"
+              className={
+                transparentHero
+                  ? "rounded-full bg-white px-4 py-2 font-bold text-[#12382c] shadow-sm transition hover:bg-[#e7f6f1]"
+                  : "rounded-full bg-[#12382c] px-4 py-2 text-white transition hover:bg-[#087a5c]"
+              }
+            >
               Connexion
             </Link>
           )}
@@ -203,12 +251,14 @@ function IconLink({
   label,
   active,
   badge = 0,
+  onDark = false,
   children,
 }: {
   href: string;
   label: string;
   active: boolean;
   badge?: number;
+  onDark?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -216,8 +266,14 @@ function IconLink({
       href={href}
       aria-label={label}
       title={label}
-      className={`relative grid h-10 w-10 place-items-center rounded-full ${
-        active ? "bg-[#e7f6f1] text-[#087a5c]" : "text-[#1c1c1c] hover:bg-black/5"
+      className={`relative grid h-10 w-10 place-items-center rounded-full transition ${
+        onDark
+          ? active
+            ? "bg-white/20 text-white"
+            : "text-white hover:bg-white/15"
+          : active
+            ? "bg-[#e7f6f1] text-[#087a5c]"
+            : "text-[#0f1c1a] hover:bg-black/5"
       }`}
     >
       {children}
