@@ -13,10 +13,11 @@ import { fetchTutors, type Tutor } from "@/lib/db";
 const QUICK_SUBJECTS = [
   "Mathématiques",
   "Anglais",
-  "Physique-Chimie",
+  "Physique",
+  "Chimie",
   "Français",
+  "Néerlandais",
   "Informatique",
-  "Espagnol",
 ] as const;
 
 const PILLARS = [
