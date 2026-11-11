@@ -1,8 +1,8 @@
 "use client";
 
 import { useAuth, useUser } from "@clerk/clerk-react";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import BackLink from "@/components/site/BackLink";
 import PhotoCropper, { photoFileError } from "@/components/site/PhotoCropper";
 import { firstName, formatRate, Portrait } from "@/components/site/TutorCard";
 import { useRequireUser } from "@/components/site/useRequireUser";
@@ -249,9 +249,7 @@ export default function AnnouncementForm() {
   if (!ready) {
     return (
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <Link href="/professeurs" className="text-sm font-semibold text-black/55">
-          ← Tous les professeurs
-        </Link>
+        <BackLink />
         <p className="grid min-h-[40vh] place-items-center text-black/50">Chargement…</p>
       </main>
     );
@@ -266,9 +264,7 @@ export default function AnnouncementForm() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <Link href="/professeurs" className="text-sm font-semibold text-black/55">
-        ← Tous les professeurs
-      </Link>
+      <BackLink />
       <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-extrabold tracking-[0.16em] text-[#087a5c] uppercase">Annonce</p>

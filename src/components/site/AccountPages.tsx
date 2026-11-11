@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import AccountSettings from "@/components/site/AccountSettings";
 import { useEffect, useState } from "react";
+import BackLink from "@/components/site/BackLink";
 import TutorCard from "@/components/site/TutorCard";
 import { useRequireUser } from "@/components/site/useRequireUser";
 import { fetchFavorites, toggleFavorite, type Tutor } from "@/lib/db";
@@ -210,11 +211,7 @@ export function Welcome() {
 }
 
 function BackToTutors() {
-  return (
-    <Link href="/professeurs" className="text-sm font-semibold text-black/55 transition hover:text-[#087a5c]">
-      ← Tous les professeurs
-    </Link>
-  );
+  return <BackLink />;
 }
 
 function Loading() {

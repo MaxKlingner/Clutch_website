@@ -2,6 +2,7 @@
 
 import { ClerkProvider, useSession } from "@clerk/clerk-react";
 import { useLayoutEffect } from "react";
+import { NavigationProvider } from "@/components/site/BackLink";
 import { SearchProvider } from "@/components/site/Search";
 import { setSupabaseTokenProvider } from "@/lib/db";
 
@@ -29,11 +30,12 @@ function SupabaseAuthBridge() {
 }
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  if (!publishableKey) return <SearchProvider>{children}</SearchProvider>;
+  const tree = <NavigationProvider>{children}</NavigationProvider>;
+  if (!publishableKey) return <SearchProvider>{tree}</SearchProvider>;
   return (
     <ClerkProvider publishableKey={publishableKey} afterSignOutUrl="/">
       <SupabaseAuthBridge />
-      <SearchProvider>{children}</SearchProvider>
+      <SearchProvider>{tree}</SearchProvider>
     </ClerkProvider>
   );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth, useClerk, useUser } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
+import BackLink from "@/components/site/BackLink";
 import PhotoCropper, { photoFileError } from "@/components/site/PhotoCropper";
 import { Portrait } from "@/components/site/TutorCard";
 import { useRequireUser } from "@/components/site/useRequireUser";
@@ -34,9 +35,7 @@ export default function AccountSettings() {
   if (!ready || !userId || !user) {
     return (
       <main className="mx-auto max-w-xl px-4 py-8 sm:px-6">
-        <Link href="/professeurs" className="text-sm font-semibold text-black/55">
-          ← Tous les professeurs
-        </Link>
+        <BackLink />
         <p className="grid min-h-[40vh] place-items-center text-black/50">Chargement…</p>
       </main>
     );
@@ -276,9 +275,7 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
 
   return (
     <main className="mx-auto max-w-xl px-4 py-8 sm:px-6">
-      <Link href="/professeurs" className="text-sm font-semibold text-black/55">
-        ← Tous les professeurs
-      </Link>
+      <BackLink />
       <h1 className="mt-4 font-display text-3xl font-bold">Compte</h1>
       <div className="mt-6 flex flex-col items-center">
         <label className="relative cursor-pointer">

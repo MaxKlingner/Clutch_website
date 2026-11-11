@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
+import BackLink from "@/components/site/BackLink";
 import { firstName, formatRate, Portrait } from "@/components/site/TutorCard";
 import ReportButton from "@/components/site/ReportButton";
 import {
@@ -122,12 +123,7 @@ export default function PublicTutor({
     return (
       <main className="mx-auto max-w-xl px-4 py-16 text-center">
         <p className="text-black/65">{error || "Ce profil de professeur est introuvable."}</p>
-        <Link
-          href="/professeurs"
-          className="mt-4 inline-block rounded-full bg-[#12382c] px-5 py-2.5 text-sm font-extrabold text-white"
-        >
-          ← Tous les professeurs
-        </Link>
+        <BackLink className="mt-4 inline-block rounded-full bg-[#12382c] px-5 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#087a5c]" />
       </main>
     );
   }
@@ -146,9 +142,7 @@ export default function PublicTutor({
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
-      <Link href="/professeurs" className="text-sm font-semibold text-black/55">
-        ← Tous les professeurs
-      </Link>
+      <BackLink />
       <div className="mt-4 rounded-3xl bg-white p-5 shadow-[0_8px_30px_rgba(15,28,26,0.06)] sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
           <Portrait

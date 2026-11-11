@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/clerk-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import BackLink from "@/components/site/BackLink";
 import { firstName, Portrait } from "@/components/site/TutorCard";
 import ReportButton from "@/components/site/ReportButton";
 import { useRequireUser } from "@/components/site/useRequireUser";
@@ -82,9 +83,7 @@ export default function Inbox({
   if (!ready) {
     return (
       <div className="mx-auto max-w-6xl px-5 py-8">
-        <Link href="/professeurs" className="text-sm font-semibold text-black/55">
-          ← Tous les professeurs
-        </Link>
+        <BackLink />
         <p className="grid min-h-[40vh] place-items-center text-black/50">Chargement…</p>
       </div>
     );
@@ -100,9 +99,7 @@ export default function Inbox({
   return (
     <div className="mx-auto flex h-[calc(100dvh-9rem)] max-w-6xl flex-col overflow-hidden md:h-[calc(100dvh-5.5rem)]">
       <div className="px-5 pt-4 pb-3">
-        <Link href="/professeurs" className="text-sm font-semibold text-black/55">
-          ← Tous les professeurs
-        </Link>
+        <BackLink />
       </div>
       <div className="grid min-h-0 flex-1 overflow-hidden md:grid-cols-[320px_1fr]">
         <aside className={`overflow-y-auto border-black/5 bg-white md:border-r ${open ? "hidden md:block" : "block"}`}>
