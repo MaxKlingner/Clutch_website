@@ -59,8 +59,8 @@ export default function Page() {
         <br />
         Conformément au RGPD, tu disposes d’un droit d’accès, de rectification, d’effacement, de
         limitation et d’opposition sur tes données. Pour les exercer, écris à{" "}
-        <a href="mailto:hello@clutch.education" className="font-semibold text-[#0d9f7a] underline">
-          hello@clutch.education
+        <a href="mailto:max.r.klingner@gmail.com" className="font-semibold text-[#0d9f7a] underline">
+          max.r.klingner@gmail.com
         </a>
         . Tu peux aussi introduire une réclamation auprès de l’Autorité de protection des données
         (APD) en Belgique sur{" "}

@@ -13,8 +13,8 @@ export default function Page() {
         Domicile : Rue des Cerisiers 1, 1390 Grez-Doiceau, Belgique.
         <br />
         Contact :{" "}
-        <a href="mailto:hello@clutch.education" className="font-semibold text-[#0d9f7a] underline">
-          hello@clutch.education
+        <a href="mailto:max.r.klingner@gmail.com" className="font-semibold text-[#0d9f7a] underline">
+          max.r.klingner@gmail.com
         </a>
         <br />
         Site : clutch.education

@@ -6,8 +6,8 @@ export default function Page() {
       <p>Une question sur Clutch, un compte ou un signalement ?</p>
       <p>
         Écris-nous à{" "}
-        <a href="mailto:hello@clutch.education" className="font-semibold text-[#0d9f7a] underline">
-          hello@clutch.education
+        <a href="mailto:max.r.klingner@gmail.com" className="font-semibold text-[#0d9f7a] underline">
+          max.r.klingner@gmail.com
         </a>
         .
       </p>
