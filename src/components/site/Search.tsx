@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 
 type Around = { lat: number; lng: number };
 
@@ -12,6 +12,7 @@ type SearchState = {
   around: Around | null;
   aroundState: "idle" | "pending" | "denied";
   requestAround: () => void;
+  promptAroundOnce: () => void;
   clearAround: () => void;
 };
 
@@ -22,12 +23,14 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
   const [city, setCity] = useState("");
   const [around, setAround] = useState<Around | null>(null);
   const [aroundState, setAroundState] = useState<"idle" | "pending" | "denied">("idle");
+  const promptedRef = useRef(false);
 
-  function requestAround() {
+  const requestAround = useCallback(() => {
     if (!navigator.geolocation) {
       setAroundState("denied");
       return;
     }
+    promptedRef.current = true;
     setAroundState("pending");
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -38,16 +41,32 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
       () => setAroundState("denied"),
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 120000 }
     );
-  }
+  }, []);
 
-  function clearAround() {
+  const promptAroundOnce = useCallback(() => {
+    if (promptedRef.current || around || aroundState !== "idle") return;
+    promptedRef.current = true;
+    requestAround();
+  }, [around, aroundState, requestAround]);
+
+  const clearAround = useCallback(() => {
     setAround(null);
     setAroundState("idle");
-  }
+  }, []);
 
   const value = useMemo(
-    () => ({ query, city, setQuery, setCity, around, aroundState, requestAround, clearAround }),
-    [query, city, around, aroundState]
+    () => ({
+      query,
+      city,
+      setQuery,
+      setCity,
+      around,
+      aroundState,
+      requestAround,
+      promptAroundOnce,
+      clearAround,
+    }),
+    [query, city, around, aroundState, requestAround, promptAroundOnce, clearAround]
   );
   return <SearchContext.Provider value={value}>{children}</SearchContext.Provider>;
 }
