@@ -511,21 +511,38 @@ export default function AnnouncementForm() {
         </div>
 
         <aside className="space-y-4 lg:sticky lg:top-[calc(var(--site-header,3.5rem)+1rem)]">
-          <div className="rounded-3xl bg-white p-4 shadow-[0_8px_30px_rgba(15,28,26,0.06)]">
+          <div className="rounded-3xl bg-white p-4 shadow-[0_8px_30px_rgba(15,28,26,0.05)]">
             <p className="text-xs font-extrabold tracking-wide text-black/40 uppercase">Aperçu</p>
             <div className="mt-3">
               <Portrait name={name} url={shownPhoto} className="aspect-square h-auto w-full rounded-2xl object-cover" />
-              <div className="mt-3 flex items-start justify-between gap-2">
-                <p className="truncate text-lg font-extrabold">{firstName(name)}</p>
-                <p className="shrink-0 font-extrabold text-[#0d9f7a]">{formatRate(rate)} €/h</p>
+              <div className="mt-3 flex items-baseline justify-between gap-2">
+                <p className="truncate font-display text-lg font-bold tracking-tight text-[#0f1c1a]">
+                  {firstName(name)}
+                </p>
+                <p className="shrink-0 text-base font-extrabold text-[#087a5c]">
+                  {formatRate(rate)}{" "}
+                  <span className="text-xs font-bold text-[#087a5c]/75">€/h</span>
+                </p>
               </div>
-              <p className="mt-1 text-sm text-black/50">{city.trim() || "Ville à préciser"}</p>
-              <p className="mt-2 line-clamp-3 text-sm leading-6 text-black/70">
-                {bio.trim() || "Ton accroche apparaîtra ici."}
+              <p className="mt-1 truncate text-xs font-medium text-black/55">
+                {city.trim() || "Ville à préciser"}
               </p>
-              <p className="mt-3 text-xs font-semibold text-black/55">
-                {specialties.length ? specialties.join(" · ") : "Matière à choisir"}
-              </p>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {specialties.length ? (
+                  specialties.slice(0, 2).map((item) => (
+                    <span
+                      key={item}
+                      className="max-w-full truncate rounded-lg bg-[#e7f6f1] px-2.5 py-1 text-xs font-bold text-[#087a5c]"
+                    >
+                      {item}
+                    </span>
+                  ))
+                ) : (
+                  <span className="rounded-lg bg-[#f6f7f8] px-2.5 py-1 text-xs font-semibold text-black/45">
+                    Matière à choisir
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
