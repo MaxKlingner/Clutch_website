@@ -1,22 +1,15 @@
 "use client";
 
-import "leaflet/dist/leaflet.css";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef } from "react";
-import type { Map as LeafletMap } from "leaflet";
+import type { Map as MapLibreMap } from "maplibre-gl";
 import { useRouter } from "next/navigation";
 import { firstName, formatRate } from "@/components/site/TutorCard";
 import type { Tutor } from "@/lib/db";
 
-type Point = { tutor: Tutor; lat: number; lng: number; dx: number; dy: number };
+const MAP_STYLE = "https://tiles.openfreemap.org/styles/liberty";
 
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
+type Point = { tutor: Tutor; lat: number; lng: number; dx: number; dy: number };
 
 function safeImageUrl(url: string | null) {
   if (!url) return null;
@@ -24,14 +17,36 @@ function safeImageUrl(url: string | null) {
   return null;
 }
 
-function pinHtml(tutor: Tutor, name: string, rate: string, dx: number, dy: number) {
-  const safeName = escapeHtml(name);
+function createPinElement(tutor: Tutor, name: string, rate: string) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "tutor-pin-label";
+  button.setAttribute("aria-label", `${name}, ${rate} €`);
+
   const avatar = safeImageUrl(tutor.avatarUrl);
-  const photo = avatar
-    ? `<img src="${escapeHtml(avatar)}" alt="" />`
-    : `<span class="tutor-pin-fallback">${escapeHtml(name.slice(0, 1) || "?")}</span>`;
-  const shift = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-  return `<span class="tutor-pin-label" style="transform:${shift}">${photo}<span class="tutor-pin-text"><strong>${safeName}</strong><b>${escapeHtml(rate)} €</b></span></span>`;
+  if (avatar) {
+    const img = document.createElement("img");
+    img.src = avatar;
+    img.alt = "";
+    button.appendChild(img);
+  } else {
+    const fallback = document.createElement("span");
+    fallback.className = "tutor-pin-fallback";
+    fallback.textContent = name.slice(0, 1) || "?";
+    button.appendChild(fallback);
+  }
+
+  const text = document.createElement("span");
+  text.className = "tutor-pin-text";
+  const strong = document.createElement("strong");
+  strong.textContent = name;
+  const price = document.createElement("b");
+  price.textContent = `${rate} €`;
+  text.appendChild(strong);
+  text.appendChild(price);
+  button.appendChild(text);
+
+  return button;
 }
 
 function pointsOf(tutors: Tutor[]): Point[] {
@@ -60,6 +75,15 @@ function pointsOf(tutors: Tutor[]): Point[] {
   return points;
 }
 
+function radiusBounds(lat: number, lng: number, radiusKm: number): [[number, number], [number, number]] {
+  const dLat = radiusKm / 111.32;
+  const dLng = radiusKm / (111.32 * Math.max(0.2, Math.cos((lat * Math.PI) / 180)));
+  return [
+    [lng - dLng, lat - dLat],
+    [lng + dLng, lat + dLat],
+  ];
+}
+
 export default function TutorMap({
   tutors,
   focus = null,
@@ -69,7 +93,7 @@ export default function TutorMap({
 }) {
   const router = useRouter();
   const node = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<LeafletMap | null>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
   const signature = tutors
     .map((tutor) => `${tutor.id}:${tutor.latitude ?? ""}:${tutor.longitude ?? ""}`)
     .join("|");
@@ -77,73 +101,60 @@ export default function TutorMap({
   useEffect(() => {
     if (!node.current) return;
     let cancelled = false;
-    let timer = 0;
 
     (async () => {
-      const loaded = (await import("leaflet")) as typeof import("leaflet") & {
-        default?: typeof import("leaflet");
-      };
-      const L = typeof loaded.map === "function" ? loaded : loaded.default;
-      if (!L || cancelled || !node.current) return;
+      const maplibregl = await import("maplibre-gl");
       if (cancelled || !node.current) return;
 
-      const map = L.map(node.current, { scrollWheelZoom: true, zoomSnap: 0, zoomDelta: 1 });
-      mapRef.current = map;
-      L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
-        {
-          attribution: "&copy; OpenStreetMap &copy; Esri",
-          maxZoom: 19,
-        }
-      ).addTo(map);
-
       const points = pointsOf(tutors);
+      const map = new maplibregl.Map({
+        container: node.current,
+        style: MAP_STYLE,
+        center: [4.45, 50.5],
+        zoom: 8,
+        attributionControl: false,
+      });
+      mapRef.current = map;
+
+      map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
+      map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+
+      if (focus) {
+        if (focus.zoom != null) {
+          map.jumpTo({ center: [focus.lng, focus.lat], zoom: focus.zoom });
+        } else if (focus.radiusKm != null) {
+          map.fitBounds(radiusBounds(focus.lat, focus.lng, focus.radiusKm), {
+            padding: 16,
+            duration: 0,
+          });
+        } else {
+          map.jumpTo({ center: [focus.lng, focus.lat], zoom: 13 });
+        }
+      } else if (points.length === 1) {
+        map.jumpTo({ center: [points[0].lng, points[0].lat], zoom: 12 });
+      } else if (points.length > 1) {
+        const bounds = new maplibregl.LngLatBounds();
+        for (const point of points) bounds.extend([point.lng, point.lat]);
+        map.fitBounds(bounds, { padding: 64, duration: 0, maxZoom: 14 });
+      }
+
       for (const point of points) {
         const name = firstName(point.tutor.name);
         const rate = formatRate(point.tutor.hourlyRate);
-        const icon = L.divIcon({
-          className: "tutor-pin",
-          html: pinHtml(point.tutor, name, rate, point.dx, point.dy),
-          iconSize: [1, 1],
-          iconAnchor: [0, 0],
-        });
-        const marker = L.marker([point.lat, point.lng], { icon, title: name }).addTo(map);
-        marker.on("click", () => router.push(`/tuteur/${point.tutor.id}`));
+        const el = createPinElement(point.tutor, name, rate);
+        el.addEventListener("click", () => router.push(`/tuteur/${point.tutor.id}`));
+        new maplibregl.Marker({
+          element: el,
+          anchor: "center",
+          offset: [point.dx, point.dy],
+        })
+          .setLngLat([point.lng, point.lat])
+          .addTo(map);
       }
-
-      const frame = () => {
-        if (focus) {
-          if (focus.zoom != null) {
-            map.setView([focus.lat, focus.lng], focus.zoom);
-          } else if (focus.radiusKm != null) {
-            map.fitBounds(L.latLng(focus.lat, focus.lng).toBounds(focus.radiusKm * 2000), {
-              padding: [8, 8],
-            });
-          } else {
-            map.setView([focus.lat, focus.lng], 13);
-          }
-        } else if (points.length === 1) {
-          map.setView([points[0].lat, points[0].lng], 12);
-        } else if (points.length > 1) {
-          map.fitBounds(
-            L.latLngBounds(points.map((point) => [point.lat, point.lng])),
-            { padding: [48, 48] }
-          );
-        } else {
-          map.setView([50.5, 4.45], 8);
-        }
-      };
-      frame();
-      timer = window.setTimeout(() => {
-        if (cancelled) return;
-        map.invalidateSize();
-        frame();
-      }, 50);
     })();
 
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
       mapRef.current?.remove();
       mapRef.current = null;
     };
