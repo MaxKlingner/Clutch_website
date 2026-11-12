@@ -106,6 +106,7 @@ export default function TutorMap({
       const maplibregl = await import("maplibre-gl");
       if (cancelled || !node.current) return;
 
+      maplibregl.setWorkerUrl("/maplibre-gl-worker.mjs");
       const points = pointsOf(tutors);
       const map = new maplibregl.Map({
         container: node.current,
