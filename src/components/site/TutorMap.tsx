@@ -89,9 +89,10 @@ export default function TutorMap({
 
       const map = L.map(node.current, { scrollWheelZoom: true, zoomSnap: 0, zoomDelta: 1 });
       mapRef.current = map;
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "&copy; OpenStreetMap",
-        maxZoom: 18,
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+        attribution: "&copy; OpenStreetMap &copy; CARTO",
+        subdomains: "abcd",
+        maxZoom: 20,
       }).addTo(map);
 
       const points = pointsOf(tutors);

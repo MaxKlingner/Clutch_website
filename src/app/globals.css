@@ -78,11 +78,56 @@ input:is(
   gap: 8px;
   white-space: nowrap;
   border-radius: 16px;
+  border: 1px solid rgba(15, 28, 26, 0.08);
   background: #fff;
-  padding: 5px 10px 5px 5px;
+  padding: 5px 11px 5px 5px;
   color: #1c1c1c;
-  box-shadow: 0 8px 20px rgba(15, 28, 26, 0.16);
+  box-shadow: 0 10px 24px rgba(15, 28, 26, 0.14);
   cursor: pointer;
+  transition: box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.tutor-pin-label:hover {
+  border-color: rgba(13, 159, 122, 0.4);
+  box-shadow: 0 14px 28px rgba(15, 28, 26, 0.2);
+}
+
+.leaflet-container {
+  background: #f3f5f4;
+  font-family: var(--font-outfit), system-ui, sans-serif;
+}
+
+.leaflet-top.leaflet-left .leaflet-control-zoom {
+  margin-top: 14px;
+  margin-left: 14px;
+  border: 1px solid rgba(15, 28, 26, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(15, 28, 26, 0.1);
+}
+
+.leaflet-control-zoom a {
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  color: #12382c !important;
+  font-weight: 700;
+  border-bottom-color: rgba(15, 28, 26, 0.06) !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: #f3fbf8 !important;
+  color: #087a5c !important;
+}
+
+.leaflet-control-attribution {
+  margin: 0 10px 10px 0 !important;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85) !important;
+  padding: 2px 8px !important;
+  font-size: 10px !important;
+  color: rgba(15, 28, 26, 0.55) !important;
+  backdrop-filter: blur(6px);
 }
 
 .tutor-pin-label img,
