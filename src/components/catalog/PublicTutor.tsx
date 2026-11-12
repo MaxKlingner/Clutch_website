@@ -13,6 +13,7 @@ import {
   fetchTutor,
   fetchTutorContactPhone,
   findTutorMatch,
+  recordProfileView,
   toggleFavorite,
   type Review,
   type Tutor,
@@ -80,6 +81,22 @@ export default function PublicTutor({
 
   const hasContactPhone = Boolean(tutor?.hasContactPhone);
   const hasSession = Boolean(session);
+  const tutorClerkId = tutor?.clerkId ?? null;
+  const hasTutor = Boolean(tutor);
+
+  useEffect(() => {
+    if (!hasTutor) return;
+    if (userId && tutorClerkId === userId) return;
+    const key = `clutch_viewed_${id}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch {
+      // Ignore storage access errors in private mode; still count once per mount.
+    }
+    void recordProfileView(id).catch(() => undefined);
+  }, [hasTutor, id, userId, tutorClerkId]);
+
   useEffect(() => {
     if (!isSignedIn || !hasSession || !hasContactPhone) return;
     let cancel = false;

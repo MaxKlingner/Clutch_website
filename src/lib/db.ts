@@ -1209,3 +1209,8 @@ export async function deleteAccountData(clerkId: string) {
     localStorage.removeItem(roleKey(clerkId));
   }
 }
+
+export async function recordProfileView(profileId: string) {
+  const db = getSupabase();
+  await db.rpc("increment_profile_view", { target_profile_id: profileId });
+}
