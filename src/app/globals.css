@@ -97,6 +97,10 @@ input:is(
   font-family: var(--font-outfit), system-ui, sans-serif;
 }
 
+.leaflet-tile-pane {
+  filter: saturate(0.82) brightness(1.03) contrast(0.96);
+}
+
 .leaflet-top.leaflet-left .leaflet-control-zoom {
   margin-top: 14px;
   margin-left: 14px;
