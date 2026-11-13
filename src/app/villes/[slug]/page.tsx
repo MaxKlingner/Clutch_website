@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Catalog from "@/components/catalog/Catalog";
 import FaqBlock from "@/components/site/FaqBlock";
 import JsonLd from "@/components/site/JsonLd";
+import SeoDirectory from "@/components/site/SeoDirectory";
 import { tutorsForCityHub } from "@/components/site/filters";
 import { fetchTutors, type Tutor } from "@/lib/db";
 import {
@@ -11,7 +12,6 @@ import {
   CITY_PAGES,
   faqJsonLd,
   getCityBySlug,
-  SUBJECT_PAGES,
   tutorListJsonLd,
 } from "@/lib/seo";
 
@@ -66,7 +66,6 @@ export default async function CityLandingPage({ params }: Props) {
   });
 
   const canonical = `/villes/${city.slug}`;
-  const otherCities = CITY_PAGES.filter((item) => item.slug !== city.slug);
 
   return (
     <>
@@ -109,40 +108,11 @@ export default async function CityLandingPage({ params }: Props) {
 
             <FaqBlock items={city.faq} title={`Questions fréquentes — ${city.name}`} />
 
-            <section className="grid gap-6 rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.04)] sm:p-8 lg:grid-cols-2">
-              <div>
-                <h2 className="font-display text-lg font-bold text-[#0f1c1a]">
-                  Matières demandées
-                </h2>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {SUBJECT_PAGES.slice(0, 10).map((subject) => (
-                    <Link
-                      key={subject.slug}
-                      href={`/cours/${subject.slug}`}
-                      className="rounded-full bg-[#f6f7f8] px-3 py-1.5 text-xs font-semibold text-[#12382c] transition hover:bg-[#e7f6f1] hover:text-[#087a5c]"
-                    >
-                      {subject.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h2 className="font-display text-lg font-bold text-[#0f1c1a]">
-                  Autres villes en Belgique
-                </h2>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {otherCities.map((item) => (
-                    <Link
-                      key={item.slug}
-                      href={`/villes/${item.slug}`}
-                      className="rounded-full bg-[#f6f7f8] px-3 py-1.5 text-xs font-semibold text-[#12382c] transition hover:bg-[#e7f6f1] hover:text-[#087a5c]"
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </section>
+            <SeoDirectory
+              excludeCitySlug={city.slug}
+              subjectsTitle="Matières demandées"
+              citiesTitle="Autres villes en Belgique"
+            />
           </div>
         }
       />

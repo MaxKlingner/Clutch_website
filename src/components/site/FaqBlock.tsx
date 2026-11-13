@@ -9,14 +9,30 @@ export default function FaqBlock({
 }) {
   if (!items.length) return null;
   return (
-    <section className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.04)] sm:p-8">
-      <h2 className="font-display text-2xl font-bold tracking-tight text-[#0f1c1a]">{title}</h2>
-      <div className="mt-5 grid gap-5 sm:grid-cols-2">
-        {items.map((item) => (
-          <div key={item.question} className="rounded-2xl bg-[#f6f7f8] p-5">
-            <h3 className="text-sm font-extrabold text-[#12382c]">{item.question}</h3>
-            <p className="mt-2 text-sm leading-6 text-black/65">{item.answer}</p>
-          </div>
+    <section className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.04)] sm:p-10">
+      <p className="text-xs font-extrabold tracking-[0.16em] text-[#087a5c] uppercase">FAQ</p>
+      <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-[#0f1c1a] sm:text-3xl">
+        {title}
+      </h2>
+
+      <div className="mt-6 divide-y divide-black/6 border-t border-black/6">
+        {items.map((item, index) => (
+          <details key={item.question} open={index === 0} className="group py-5">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left [&::-webkit-details-marker]:hidden">
+              <span className="text-base font-bold text-[#0f1c1a] transition group-hover:text-[#087a5c]">
+                {item.question}
+              </span>
+              <span
+                aria-hidden="true"
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#f6f7f8] text-lg font-medium text-[#12382c] transition-transform duration-200 group-open:rotate-45 group-open:bg-[#e7f6f1] group-open:text-[#087a5c]"
+              >
+                +
+              </span>
+            </summary>
+            <p className="mt-3 max-w-3xl pr-10 text-sm leading-7 text-black/65">
+              {item.answer}
+            </p>
+          </details>
         ))}
       </div>
     </section>

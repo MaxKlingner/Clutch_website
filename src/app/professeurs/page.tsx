@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import Catalog from "@/components/catalog/Catalog";
 import JsonLd from "@/components/site/JsonLd";
+import SeoDirectory from "@/components/site/SeoDirectory";
 import { fetchTutors } from "@/lib/db";
-import { breadcrumbJsonLd, CITY_PAGES, SUBJECT_PAGES, tutorListJsonLd } from "@/lib/seo";
+import { breadcrumbJsonLd, tutorListJsonLd } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -57,42 +57,7 @@ export default async function TutorsCatalogPage({
         highlightId={highlightId}
         initialUrlQuery={initialUrlQuery}
         initialUrlCity={initialUrlCity}
-        afterGrid={
-          <section className="grid gap-6 rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.04)] sm:p-8 lg:grid-cols-2">
-            <div>
-              <h2 className="font-display text-lg font-bold text-[#0f1c1a]">
-                Rechercher par matière
-              </h2>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {SUBJECT_PAGES.map((subject) => (
-                  <Link
-                    key={subject.slug}
-                    href={`/cours/${subject.slug}`}
-                    className="rounded-full bg-[#f6f7f8] px-3 py-1.5 text-xs font-semibold text-[#12382c] transition hover:bg-[#e7f6f1] hover:text-[#087a5c]"
-                  >
-                    {subject.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-            <div>
-              <h2 className="font-display text-lg font-bold text-[#0f1c1a]">
-                Rechercher par ville en Belgique
-              </h2>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {CITY_PAGES.map((city) => (
-                  <Link
-                    key={city.slug}
-                    href={`/villes/${city.slug}`}
-                    className="rounded-full bg-[#f6f7f8] px-3 py-1.5 text-xs font-semibold text-[#12382c] transition hover:bg-[#e7f6f1] hover:text-[#087a5c]"
-                  >
-                    {city.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </section>
-        }
+        afterGrid={<SeoDirectory subjectsTitle="Rechercher par matière" citiesTitle="Rechercher par ville" />}
       />
     </>
   );

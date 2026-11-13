@@ -6,10 +6,11 @@ import { useAuth } from "@clerk/clerk-react";
 import { useEffect, useMemo, useState } from "react";
 import FaqBlock from "@/components/site/FaqBlock";
 import SearchBar from "@/components/site/SearchBar";
+import SeoDirectory from "@/components/site/SeoDirectory";
 import { useSiteSearch } from "@/components/site/Search";
 import TutorCard from "@/components/site/TutorCard";
 import { fetchTutors, type Tutor } from "@/lib/db";
-import { CITY_PAGES, HOME_FAQ, slugify, SUBJECT_PAGES } from "@/lib/seo";
+import { HOME_FAQ, slugify } from "@/lib/seo";
 
 const QUICK_SUBJECTS = [
   "Mathématiques",
@@ -193,48 +194,7 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
       </section>
 
       <section className="mx-auto max-w-6xl space-y-6 px-4 pb-14 sm:px-6">
-        <div className="grid gap-6 rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.04)] sm:p-8 lg:grid-cols-2">
-          <div>
-            <h2 className="font-display text-xl font-bold text-[#0f1c1a]">
-              Cours particuliers par matière
-            </h2>
-            <p className="mt-1 text-sm text-black/55">
-              Soutien scolaire du primaire au supérieur, préparations d’examens et langues.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {SUBJECT_PAGES.map((subject) => (
-                <Link
-                  key={subject.slug}
-                  href={`/cours/${subject.slug}`}
-                  className="rounded-full bg-[#f6f7f8] px-3.5 py-1.5 text-xs font-semibold text-[#12382c] transition hover:bg-[#e7f6f1] hover:text-[#087a5c]"
-                >
-                  {subject.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h2 className="font-display text-xl font-bold text-[#0f1c1a]">
-              Professeurs en Belgique et à distance
-            </h2>
-            <p className="mt-1 text-sm text-black/55">
-              Cours chez le professeur, chez l’élève ou en visioconférence sans commission.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {CITY_PAGES.map((city) => (
-                <Link
-                  key={city.slug}
-                  href={`/villes/${city.slug}`}
-                  className="rounded-full bg-[#f6f7f8] px-3.5 py-1.5 text-xs font-semibold text-[#12382c] transition hover:bg-[#e7f6f1] hover:text-[#087a5c]"
-                >
-                  {city.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-
+        <SeoDirectory />
         <FaqBlock items={HOME_FAQ} />
       </section>
     </main>
