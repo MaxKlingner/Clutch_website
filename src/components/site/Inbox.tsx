@@ -16,6 +16,7 @@ import {
   fetchMessages,
   fetchReviewForMatch,
   fetchTutor,
+  fetchTutorContactPhone,
   fetchUserMatches,
   isMatchUnread,
   markMatchRead,
@@ -213,6 +214,7 @@ function ThreadView({
   const [reviewComment, setReviewComment] = useState("");
   const [reviewBusy, setReviewBusy] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [tutorPhone, setTutorPhone] = useState<{ tutorId: string; phone: string | null } | null>(null);
   const listEndRef = useRef<HTMLDivElement>(null);
 
   const activeMatch = matchId || "";
@@ -265,6 +267,22 @@ function ThreadView({
     // onRead only updates sidebar state cleanly; matchId/tutorId drive thread loads
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tutorId, matchId, userId, myTutorProfileId]);
+
+  useEffect(() => {
+    const id = tutor?.id;
+    if (!id || !tutor.hasContactPhone || isTutorInThread) return;
+    let cancel = false;
+    fetchTutorContactPhone(id)
+      .then((phone) => {
+        if (!cancel) setTutorPhone({ tutorId: id, phone });
+      })
+      .catch(() => {
+        if (!cancel) setTutorPhone({ tutorId: id, phone: null });
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [tutor?.id, tutor?.hasContactPhone, isTutorInThread]);
 
   useEffect(() => {
     if (!activeMatch) return;
@@ -400,14 +418,24 @@ function ThreadView({
           ←
         </Link>
         {tutor && !isTutorInThread ? (
-          <Link href={`/tuteur/${tutor.id}`} className="flex min-w-0 items-center gap-3">
-            <Portrait
-              name={tutor.name}
-              url={tutor.avatarUrl}
-              className="h-10 w-10 rounded-full object-cover"
-            />
-            <span className="truncate font-extrabold">{title}</span>
-          </Link>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <Link href={`/tuteur/${tutor.id}`} className="flex min-w-0 items-center gap-3">
+              <Portrait
+                name={tutor.name}
+                url={tutor.avatarUrl}
+                className="h-10 w-10 rounded-full object-cover"
+              />
+              <span className="truncate font-extrabold">{title}</span>
+            </Link>
+            {tutorPhone?.tutorId === tutor.id && tutorPhone.phone ? (
+              <a
+                href={`tel:${tutorPhone.phone.replace(/\s+/g, "")}`}
+                className="shrink-0 rounded-full bg-[#e6f7f2] px-2.5 py-1 text-xs font-bold text-[#087a5c] transition hover:bg-[#d3f2e8]"
+              >
+                {tutorPhone.phone}
+              </a>
+            ) : null}
+          </div>
         ) : (
           <p className="font-extrabold">{title}</p>
         )}
