@@ -19,8 +19,6 @@ import {
   syncUserEmail,
 } from "@/lib/db";
 
-const GENDERS = ["Homme", "Femme", "Je ne souhaite pas préciser"] as const;
-
 const field =
   "w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:border-[#12382c]";
 
@@ -46,19 +44,14 @@ export default function AccountSettings() {
 function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
   const { signOut } = useClerk();
   const router = useRouter();
-  const meta = metaOf(user);
   const initialValues = {
-    gender: textOf(meta.gender),
     firstName: user.firstName || "",
     lastName: user.lastName || "",
-    address: textOf(meta.address),
     emailNotifications: true,
   };
 
-  const [gender, setGender] = useState(initialValues.gender);
   const [firstName, setFirstName] = useState(initialValues.firstName);
   const [lastName, setLastName] = useState(initialValues.lastName);
-  const [address, setAddress] = useState(initialValues.address);
   const [emailNotifications, setEmailNotifications] = useState(initialValues.emailNotifications);
   const [photoUrl, setPhotoUrl] = useState<string | null>(user.imageUrl || null);
   const [baseline, setBaseline] = useState(() => JSON.stringify(initialValues));
@@ -80,10 +73,8 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
   useEffect(() => {
     let cancel = false;
     const baseSnapshot = {
-      gender: textOf(metaOf(user).gender),
       firstName: user.firstName || "",
       lastName: user.lastName || "",
-      address: textOf(metaOf(user).address),
     };
 
     Promise.all([
@@ -95,19 +86,12 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
         if (cancel) return;
         const fromTutor = splitName(tutor && tutor.name !== "Tuteur" ? tutor.name : "");
         const next = {
-          gender: baseSnapshot.gender,
           firstName: baseSnapshot.firstName || identity?.firstName || fromTutor.first,
           lastName: baseSnapshot.lastName || identity?.lastName || fromTutor.last,
-          address:
-            baseSnapshot.address ||
-            joinPlace(identity?.postalCode, identity?.city) ||
-            joinPlace(tutor?.postalCode, tutor?.city),
           emailNotifications: notifyEmail,
         };
-        setGender(next.gender);
         setFirstName(next.firstName);
         setLastName(next.lastName);
-        setAddress(next.address);
         setEmailNotifications(next.emailNotifications);
         setPhotoUrl(user.imageUrl || tutor?.avatarUrl || null);
         setBaseline(JSON.stringify(next));
@@ -126,10 +110,8 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
   }, [userId, user.id]);
 
   const current = JSON.stringify({
-    gender,
     firstName,
     lastName,
-    address,
     emailNotifications,
   });
   const dirty = current !== baseline;
@@ -168,16 +150,8 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
     if (!dirty || saving) return;
     setError("");
     setMessage("");
-    if (!gender) {
-      setError("Choisis ton genre.");
-      return;
-    }
     if (!firstName.trim() || !lastName.trim()) {
       setError("Indique ton prénom et ton nom.");
-      return;
-    }
-    if (!address.trim()) {
-      setError("Indique ton adresse postale.");
       return;
     }
     setSaving(true);
@@ -185,11 +159,6 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
       await user.update({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        unsafeMetadata: {
-          ...user.unsafeMetadata,
-          gender,
-          address: address.trim(),
-        },
       });
       await saveAccountIdentity({
         clerkId: userId,
@@ -289,17 +258,6 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
       </div>
 
       <Section title="Informations générales">
-        <label className="block text-sm">
-          <span className="font-semibold text-black/55">Genre</span>
-          <select value={gender} onChange={(event) => setGender(event.target.value)} className={`${field} mt-2`}>
-            <option value="">Choisir</option>
-            {GENDERS.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </label>
         <input
           value={firstName}
           onChange={(event) => setFirstName(event.target.value)}
@@ -314,18 +272,10 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
           autoComplete="family-name"
           className={field}
         />
-        <textarea
-          value={address}
-          onChange={(event) => setAddress(event.target.value)}
-          placeholder="Adresse"
-          rows={3}
-          autoComplete="street-address"
-          className={field}
-        />
+        <p className={`${field} text-black/70`}>{email || "E-mail"}</p>
       </Section>
 
       <Section title="Paramètres du compte">
-        <p className={`${field} text-black/70`}>{email || "E-mail"}</p>
         <label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm">
           <input
             type="checkbox"
@@ -472,19 +422,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <div className="mt-3 space-y-2">{children}</div>
     </section>
   );
-}
-
-function metaOf(user: { unsafeMetadata?: Record<string, unknown> } | null | undefined) {
-  const raw = user?.unsafeMetadata;
-  return raw && typeof raw === "object" ? raw : {};
-}
-
-function textOf(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function joinPlace(postal?: string | null, city?: string | null) {
-  return [postal, city].map((item) => item?.trim()).filter(Boolean).join(" ");
 }
 
 function splitName(full: string) {
