@@ -20,9 +20,11 @@ const EMPTY_SET = new Set<string>();
 export default function Catalog({
   initialTutors,
   initialView = "liste",
+  highlightId,
 }: {
   initialTutors?: Tutor[];
   initialView?: "liste" | "carte";
+  highlightId?: string;
 }) {
   const { query, city, around, aroundState, setQuery, setCity, clearAround, requestAround } =
     useSiteSearch();
@@ -90,8 +92,12 @@ export default function Catalog({
         origin,
       })
     );
-    return sortByProximity(matched, around);
-  }, [tutors, query, city, formats, levels, maxRate, radiusKm, origin, around]);
+    const ordered = sortByProximity(matched, around);
+    if (!highlightId) return ordered;
+    const index = ordered.findIndex((tutor) => tutor.id === highlightId);
+    if (index <= 0) return ordered;
+    return [ordered[index], ...ordered.slice(0, index), ...ordered.slice(index + 1)];
+  }, [tutors, query, city, formats, levels, maxRate, radiusKm, origin, around, highlightId]);
 
   function onRadius(value: number | null) {
     setRadiusKm(value);

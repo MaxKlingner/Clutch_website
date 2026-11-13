@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useEffect, useRef, useState } from "react";
 import BackLink from "@/components/site/BackLink";
@@ -41,6 +42,7 @@ const field =
 
 export default function AnnouncementForm() {
   const ready = useRequireUser();
+  const router = useRouter();
   const { userId } = useAuth();
   const { user } = useUser();
 
@@ -349,6 +351,11 @@ export default function AnnouncementForm() {
           : "Annonce publiée. Elle apparaît maintenant chez les professeurs disponibles."
       );
       window.dispatchEvent(new Event("clutch-announcement"));
+      router.push(
+        updatedProfile?.id
+          ? `/professeurs?highlight=${encodeURIComponent(updatedProfile.id)}`
+          : "/professeurs"
+      );
     } catch (err) {
       const raw = err instanceof Error ? err.message : "";
       if (raw.toLowerCase().includes("no suitable key") || raw.includes("PGRST301")) {

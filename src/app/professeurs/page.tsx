@@ -17,11 +17,12 @@ export default async function TutorsCatalogPage({
 }) {
   const params = await searchParams;
   const initialView = params.vue === "carte" ? "carte" : "liste";
+  const highlightId = typeof params.highlight === "string" ? params.highlight : undefined;
   let initialTutors;
   try {
     initialTutors = await fetchTutors();
   } catch {
     initialTutors = undefined;
   }
-  return <Catalog initialTutors={initialTutors} initialView={initialView} />;
+  return <Catalog initialTutors={initialTutors} initialView={initialView} highlightId={highlightId} />;
 }
