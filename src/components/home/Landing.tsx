@@ -157,24 +157,7 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
         </section>
       ) : null}
 
-      <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <div className="grid gap-4 md:grid-cols-3">
-          {PILLARS.map((item) => (
-            <div
-              key={item.step}
-              className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.04)]"
-            >
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#e7f6f1] text-xs font-extrabold text-[#087a5c]">
-                {item.step}
-              </span>
-              <h3 className="mt-4 font-display text-lg font-bold text-[#0f1c1a]">{item.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-black/60">{item.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-4 pb-14 sm:px-6">
+      <section className="mx-auto max-w-6xl px-4 pt-6 pb-2 sm:px-6">
         <div className="flex flex-col items-start justify-between gap-5 rounded-3xl bg-[#12382c] p-7 text-white sm:flex-row sm:items-center sm:p-10">
           <div className="max-w-2xl">
             <h2 className="font-display text-2xl font-bold sm:text-3xl">
@@ -190,6 +173,23 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
           >
             {isSignedIn ? "Mon annonce" : "Donner des cours →"}
           </Link>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+        <div className="grid gap-4 md:grid-cols-3">
+          {PILLARS.map((item) => (
+            <div
+              key={item.step}
+              className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.04)]"
+            >
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#e7f6f1] text-xs font-extrabold text-[#087a5c]">
+                {item.step}
+              </span>
+              <h3 className="mt-4 font-display text-lg font-bold text-[#0f1c1a]">{item.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-black/60">{item.body}</p>
+            </div>
+          ))}
         </div>
       </section>
 
