@@ -149,7 +149,7 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
             <Link
               href="/professeurs"
               onClick={openAll}
-              className="inline-flex items-center justify-center rounded-full bg-[#12382c] px-7 py-3.5 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(18,56,44,0.18)] transition hover:bg-[#087a5c]"
+              className="inline-flex items-center justify-center rounded-full bg-[#087a5c] px-7 py-3.5 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(8,122,92,0.22)] transition hover:bg-[#06634b]"
             >
               Explorer tous les professeurs →
             </Link>
@@ -158,18 +158,21 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
       ) : null}
 
       <section className="mx-auto max-w-6xl px-4 pt-6 pb-2 sm:px-6">
-        <div className="flex flex-col items-start justify-between gap-5 rounded-3xl bg-[#12382c] p-7 text-white sm:flex-row sm:items-center sm:p-10">
+        <div className="flex flex-col items-start justify-between gap-5 rounded-3xl bg-[#12382c] p-7 text-white shadow-[0_18px_45px_rgba(18,56,44,0.16)] sm:flex-row sm:items-center sm:p-10">
           <div className="max-w-2xl">
-            <h2 className="font-display text-2xl font-bold sm:text-3xl">
+            <p className="text-xs font-extrabold tracking-[0.16em] text-[#7ee8c9] uppercase">
+              Professeurs &amp; étudiants
+            </p>
+            <h2 className="mt-2 font-display text-2xl font-bold sm:text-3xl">
               Vous donnez des cours particuliers{"\u00A0"}?
             </h2>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-white/75">
+            <p className="mt-2 max-w-xl text-sm leading-6 text-white/80">
               Publiez votre annonce gratuitement en quelques minutes et échangez directement avec vos futurs élèves.
             </p>
           </div>
           <Link
             href={isSignedIn ? "/annonce" : "/inscription"}
-            className="shrink-0 rounded-full bg-white px-6 py-3 text-sm font-extrabold text-[#12382c] transition hover:bg-[#e7f6f1]"
+            className="shrink-0 rounded-full bg-[#7ee8c9] px-6 py-3 text-sm font-extrabold text-[#0f1c1a] transition hover:bg-white"
           >
             {isSignedIn ? "Mon annonce" : "Donner des cours →"}
           </Link>
@@ -181,13 +184,13 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
           {PILLARS.map((item) => (
             <div
               key={item.step}
-              className="rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.04)]"
+              className="rounded-3xl border border-[#087a5c]/12 bg-gradient-to-br from-white to-[#f3fbf8] p-6 shadow-[0_8px_30px_rgba(15,28,26,0.04)]"
             >
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#e7f6f1] text-xs font-extrabold text-[#087a5c]">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#087a5c] text-xs font-extrabold text-white">
                 {item.step}
               </span>
               <h3 className="mt-4 font-display text-lg font-bold text-[#0f1c1a]">{item.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-black/60">{item.body}</p>
+              <p className="mt-2 text-sm leading-6 text-black/65">{item.body}</p>
             </div>
           ))}
         </div>
