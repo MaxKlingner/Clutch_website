@@ -48,17 +48,19 @@ function shortFormats(formats: string[]) {
 export function Portrait({
   name,
   url,
+  alt = "",
   className = "aspect-square h-auto w-full rounded-2xl object-cover",
 }: {
   name: string;
   url: string | null;
+  alt?: string;
   className?: string;
 }) {
   if (url) {
     return (
       <Image
         src={url}
-        alt=""
+        alt={alt}
         width={400}
         height={400}
         sizes="(max-width: 640px) 50vw, 280px"
@@ -112,6 +114,7 @@ export default function TutorCard({
         <Portrait
           name={tutor.name}
           url={tutor.avatarUrl}
+          alt={`${name}, professeur particulier de ${subjects[0] || "cours particuliers"}${tutor.city ? ` à ${tutor.city}` : ""}`}
           className="aspect-square h-auto w-full rounded-2xl object-cover transition duration-300 group-hover:scale-[1.03]"
         />
         {isOwn ? (

@@ -157,3 +157,34 @@ export function matchesTutor(
 
   return true;
 }
+
+export function offersRemote(tutor: Tutor): boolean {
+  return tutor.teachingFormats.some((format) => REMOTE.has(fold(format)));
+}
+
+export function tutorsForCityHub(
+  tutors: Tutor[],
+  hub: { name: string; lat: number; lng: number; maxKm?: number }
+): Tutor[] {
+  const maxKm = hub.maxKm ?? 35;
+  const hubNeedle = fold(hub.name);
+  const local: { tutor: Tutor; distance: number }[] = [];
+  const remoteOnly: Tutor[] = [];
+
+  for (const tutor of tutors) {
+    const cityMatch = Boolean(tutor.city && fold(tutor.city).includes(hubNeedle));
+    const hasCoords = tutor.latitude != null && tutor.longitude != null;
+    const distance = hasCoords
+      ? haversineKm(hub.lat, hub.lng, tutor.latitude!, tutor.longitude!)
+      : Number.POSITIVE_INFINITY;
+
+    if (cityMatch || distance <= maxKm) {
+      local.push({ tutor, distance: cityMatch ? Math.min(distance, 0) : distance });
+    } else if (offersRemote(tutor)) {
+      remoteOnly.push(tutor);
+    }
+  }
+
+  local.sort((a, b) => a.distance - b.distance);
+  return [...local.map((item) => item.tutor), ...remoteOnly];
+}

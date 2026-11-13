@@ -1,5 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import RulesPage from "@/components/site/RulesPage";
+
+export const metadata: Metadata = {
+  title: "Application mobile Clutch",
+  description:
+    "L’application mobile Clutch pour trouver un professeur particulier arrive bientôt sur iOS et Android. En attendant, utilisez clutch.education sur le web.",
+  alternates: { canonical: "/app" },
+};
 
 export default function Page() {
   return (

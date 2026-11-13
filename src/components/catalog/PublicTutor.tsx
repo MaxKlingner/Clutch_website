@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import BackLink from "@/components/site/BackLink";
 import { firstName, formatRate, Portrait } from "@/components/site/TutorCard";
 import ReportButton from "@/components/site/ReportButton";
+import { getCityByName, getSubjectByName } from "@/lib/seo";
 import {
   fetchFavoriteIds,
   fetchReviews,
@@ -166,6 +167,7 @@ export default function PublicTutor({
     : tutor.subject
       ? [tutor.subject]
       : [];
+  const cityPage = tutor.city ? getCityByName(tutor.city) : undefined;
   const placeLabel = tutor.city
     ? tutor.postalCode
       ? `${tutor.city} (${tutor.postalCode})`
@@ -184,6 +186,7 @@ export default function PublicTutor({
                 <Portrait
                   name={tutor.name}
                   url={tutor.avatarUrl}
+                  alt={`${name}, professeur particulier de ${subjects[0] || "cours particuliers"}${tutor.city ? ` à ${tutor.city}` : ""}`}
                   className="aspect-square h-28 w-28 shrink-0 rounded-2xl object-cover sm:h-36 sm:w-36"
                 />
                 <div className="min-w-0 flex-1 sm:hidden">
@@ -221,9 +224,18 @@ export default function PublicTutor({
                           Nouveau professeur
                         </span>
                       )}
-                      <span className="rounded-full bg-[#f6f7f8] px-3 py-1 text-black/75">
-                        {placeLabel}
-                      </span>
+                      {cityPage ? (
+                        <Link
+                          href={`/villes/${cityPage.slug}`}
+                          className="rounded-full bg-[#f6f7f8] px-3 py-1 text-black/75 transition hover:bg-[#e7f6f1] hover:text-[#087a5c]"
+                        >
+                          {placeLabel}
+                        </Link>
+                      ) : (
+                        <span className="rounded-full bg-[#f6f7f8] px-3 py-1 text-black/75">
+                          {placeLabel}
+                        </span>
+                      )}
                     </div>
                   </div>
                   {isSignedIn && !isOwnProfile ? (
@@ -254,14 +266,25 @@ export default function PublicTutor({
                   <span className="text-xs font-extrabold tracking-wide text-black/40 uppercase">
                     Matières
                   </span>
-                  {subjects.map((subject) => (
-                    <span
-                      key={subject}
-                      className="rounded-full bg-[#e7f6f1] px-3 py-1 text-xs font-bold text-[#087a5c]"
-                    >
-                      {subject}
-                    </span>
-                  ))}
+                  {subjects.map((subject) => {
+                    const matched = getSubjectByName(subject);
+                    return matched ? (
+                      <Link
+                        key={subject}
+                        href={`/cours/${matched.slug}`}
+                        className="rounded-full bg-[#e7f6f1] px-3 py-1 text-xs font-bold text-[#087a5c] transition hover:bg-[#d3f2e8]"
+                      >
+                        {subject}
+                      </Link>
+                    ) : (
+                      <span
+                        key={subject}
+                        className="rounded-full bg-[#e7f6f1] px-3 py-1 text-xs font-bold text-[#087a5c]"
+                      >
+                        {subject}
+                      </span>
+                    );
+                  })}
                 </div>
               ) : null}
               {tutor.taughtLevels.length ? (

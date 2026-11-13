@@ -54,6 +54,7 @@ export type Tutor = {
   teachingFormats: string[];
   taughtLevels: string[];
   hasContactPhone: boolean;
+  createdAt?: string | null;
 };
 
 export type Review = {
@@ -229,6 +230,7 @@ function mapTutor(row: Record<string, unknown> | null): Tutor | null {
       : [],
     taughtLevels: normalizeLevels(row.taught_levels),
     hasContactPhone: Boolean(row.has_contact_phone),
+    createdAt: row.created_at ? String(row.created_at) : null,
   };
 }
 

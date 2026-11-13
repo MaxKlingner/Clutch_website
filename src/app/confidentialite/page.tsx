@@ -1,5 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import RulesPage from "@/components/site/RulesPage";
+
+export const metadata: Metadata = {
+  title: "Confidentialité et RGPD",
+  description:
+    "Politique de confidentialité et protection des données personnelles (RGPD) sur Clutch.",
+  alternates: { canonical: "/confidentialite" },
+};
 
 export default function Page() {
   return (

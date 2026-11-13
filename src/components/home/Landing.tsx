@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/clerk-react";
 import { useEffect, useMemo, useState } from "react";
+import FaqBlock from "@/components/site/FaqBlock";
 import SearchBar from "@/components/site/SearchBar";
 import { useSiteSearch } from "@/components/site/Search";
 import TutorCard from "@/components/site/TutorCard";
 import { fetchTutors, type Tutor } from "@/lib/db";
+import { CITY_PAGES, HOME_FAQ, slugify, SUBJECT_PAGES } from "@/lib/seo";
 
 const QUICK_SUBJECTS = [
   "Mathématiques",
@@ -39,9 +40,8 @@ const PILLARS = [
 ] as const;
 
 export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
-  const router = useRouter();
   const { isSignedIn } = useAuth();
-  const { setQuery, promptAroundOnce } = useSiteSearch();
+  const { setQuery } = useSiteSearch();
   const [tutors, setTutors] = useState<Tutor[]>(initialTutors);
 
   useEffect(() => {
@@ -66,12 +66,6 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
       })
       .slice(0, 4);
   }, [tutors]);
-
-  function openSubject(subject: string) {
-    setQuery(subject);
-    promptAroundOnce();
-    router.push("/professeurs");
-  }
 
   function openAll() {
     setQuery("");
@@ -112,14 +106,13 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
 
           <div className="mx-auto mt-5 flex max-w-2xl flex-wrap items-center justify-center gap-2">
             {QUICK_SUBJECTS.map((subject) => (
-              <button
+              <Link
                 key={subject}
-                type="button"
-                onClick={() => openSubject(subject)}
+                href={`/cours/${slugify(subject)}`}
                 className="rounded-full border border-white/25 bg-white/15 px-3.5 py-1.5 text-xs font-semibold text-white backdrop-blur-md transition hover:border-white/50 hover:bg-white/25"
               >
                 {subject}
-              </button>
+              </Link>
             ))}
           </div>
         </div>
@@ -197,6 +190,52 @@ export default function Landing({ initialTutors }: { initialTutors: Tutor[] }) {
             {isSignedIn ? "Mon annonce" : "Donner des cours →"}
           </Link>
         </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl space-y-6 px-4 pb-14 sm:px-6">
+        <div className="grid gap-6 rounded-3xl bg-white p-6 shadow-[0_8px_30px_rgba(15,28,26,0.04)] sm:p-8 lg:grid-cols-2">
+          <div>
+            <h2 className="font-display text-xl font-bold text-[#0f1c1a]">
+              Cours particuliers par matière
+            </h2>
+            <p className="mt-1 text-sm text-black/55">
+              Soutien scolaire du primaire au supérieur, préparations d’examens et langues.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {SUBJECT_PAGES.map((subject) => (
+                <Link
+                  key={subject.slug}
+                  href={`/cours/${subject.slug}`}
+                  className="rounded-full bg-[#f6f7f8] px-3.5 py-1.5 text-xs font-semibold text-[#12382c] transition hover:bg-[#e7f6f1] hover:text-[#087a5c]"
+                >
+                  {subject.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="font-display text-xl font-bold text-[#0f1c1a]">
+              Professeurs en Belgique et à distance
+            </h2>
+            <p className="mt-1 text-sm text-black/55">
+              Cours chez le professeur, chez l’élève ou en visioconférence sans commission.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {CITY_PAGES.map((city) => (
+                <Link
+                  key={city.slug}
+                  href={`/villes/${city.slug}`}
+                  className="rounded-full bg-[#f6f7f8] px-3.5 py-1.5 text-xs font-semibold text-[#12382c] transition hover:bg-[#e7f6f1] hover:text-[#087a5c]"
+                >
+                  {city.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <FaqBlock items={HOME_FAQ} />
       </section>
     </main>
   );

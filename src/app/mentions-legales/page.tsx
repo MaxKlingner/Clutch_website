@@ -1,5 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import RulesPage from "@/components/site/RulesPage";
+
+export const metadata: Metadata = {
+  title: "Mentions légales",
+  description:
+    "Mentions légales, éditeur et hébergement du site clutch.education.",
+  alternates: { canonical: "/mentions-legales" },
+};
 
 export default function Page() {
   return (

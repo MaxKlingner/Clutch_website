@@ -1,5 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import RulesPage from "@/components/site/RulesPage";
+
+export const metadata: Metadata = {
+  title: "Conditions d’utilisation",
+  description:
+    "Consultez les conditions générales d’utilisation de la plateforme gratuite de cours particuliers Clutch (droit belge).",
+  alternates: { canonical: "/conditions" },
+};
 
 export default function Page() {
   return (

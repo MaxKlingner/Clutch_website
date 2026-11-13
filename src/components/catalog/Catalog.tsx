@@ -5,7 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import FilterBar from "@/components/catalog/FilterBar";
 import TutorCard from "@/components/site/TutorCard";
 import TutorMap from "@/components/site/TutorMap";
-import { centroidForCity, matchesTutor, sortByProximity } from "@/components/site/filters";
+import {
+  centroidForCity,
+  matchesTutor,
+  sortByProximity,
+  tutorsForCityHub,
+} from "@/components/site/filters";
 import { useSiteSearch } from "@/components/site/Search";
 import {
   contactedTutorIds,
@@ -21,10 +26,26 @@ export default function Catalog({
   initialTutors,
   initialView = "liste",
   highlightId,
+  presetSubject,
+  presetCity,
+  initialUrlQuery,
+  initialUrlCity,
+  heading = "Professeurs disponibles",
+  subheading = "Mise en relation directe et 100 % gratuite entre élèves et professeurs particuliers, sans commission.",
+  breadcrumb,
+  afterGrid,
 }: {
   initialTutors?: Tutor[];
   initialView?: "liste" | "carte";
   highlightId?: string;
+  presetSubject?: string;
+  presetCity?: { name: string; latitude: number; longitude: number };
+  initialUrlQuery?: string;
+  initialUrlCity?: string;
+  heading?: string;
+  subheading?: string;
+  breadcrumb?: React.ReactNode;
+  afterGrid?: React.ReactNode;
 }) {
   const { query, city, around, aroundState, setQuery, setCity, clearAround, requestAround } =
     useSiteSearch();
@@ -75,16 +96,30 @@ export default function Catalog({
   const activeFavorites = isSignedIn && userId ? favorites : EMPTY_SET;
   const activeContacted = isSignedIn && userId ? contacted : EMPTY_SET;
 
+  const activeQuery = presetSubject ?? (query || initialUrlQuery || "");
+  const activeCity = presetCity ? "" : city || initialUrlCity || "";
+
   const origin = useMemo(
-    () => around ?? centroidForCity(tutors, city),
-    [around, tutors, city]
+    () =>
+      presetCity
+        ? { lat: presetCity.latitude, lng: presetCity.longitude }
+        : around ?? centroidForCity(tutors, activeCity),
+    [presetCity, around, tutors, activeCity]
   );
 
   const visible = useMemo(() => {
-    const matched = tutors.filter((tutor) =>
+    const base = presetCity
+      ? tutorsForCityHub(tutors, {
+          name: presetCity.name,
+          lat: presetCity.latitude,
+          lng: presetCity.longitude,
+        })
+      : tutors;
+
+    const matched = base.filter((tutor) =>
       matchesTutor(tutor, {
-        query,
-        city,
+        query: activeQuery,
+        city: activeCity,
         formats,
         levels,
         maxRate,
@@ -92,16 +127,16 @@ export default function Catalog({
         origin,
       })
     );
-    const ordered = sortByProximity(matched, around);
+    const ordered = presetCity ? matched : sortByProximity(matched, around);
     if (!highlightId) return ordered;
     const index = ordered.findIndex((tutor) => tutor.id === highlightId);
     if (index <= 0) return ordered;
     return [ordered[index], ...ordered.slice(0, index), ...ordered.slice(index + 1)];
-  }, [tutors, query, city, formats, levels, maxRate, radiusKm, origin, around, highlightId]);
+  }, [tutors, presetCity, activeQuery, activeCity, formats, levels, maxRate, radiusKm, origin, around, highlightId]);
 
   function onRadius(value: number | null) {
     setRadiusKm(value);
-    if (value != null && !around && !centroidForCity(tutors, city)) requestAround();
+    if (value != null && !origin) requestAround();
   }
 
   function resetAllFilters() {
@@ -170,11 +205,12 @@ export default function Catalog({
       </div>
 
       <div className="mt-1">
+        {breadcrumb ? <div className="mb-2">{breadcrumb}</div> : null}
         <h1 className="font-display text-3xl font-bold tracking-tight">
-          Professeurs disponibles
+          {heading}
         </h1>
         <p className="mt-1 text-sm text-black/60">
-          Mise en relation directe et 100 % gratuite entre élèves et professeurs particuliers, sans commission.
+          {subheading}
         </p>
       </div>
 
@@ -212,7 +248,13 @@ export default function Catalog({
           <div className="relative z-0 mt-5 overflow-hidden rounded-3xl bg-white shadow-[0_8px_30px_rgba(15,28,26,0.06)]">
             <TutorMap
               tutors={visible}
-              focus={around ? { lat: around.lat, lng: around.lng, zoom: 13 } : null}
+              focus={
+                around
+                  ? { lat: around.lat, lng: around.lng, zoom: 13 }
+                  : presetCity
+                    ? { lat: presetCity.latitude, lng: presetCity.longitude, zoom: 11.5 }
+                    : null
+              }
             />
           </div>
           {unplaced ? (
@@ -237,6 +279,7 @@ export default function Catalog({
           ) : null}
         </div>
       ) : null}
+      {afterGrid ? <div className="mt-10">{afterGrid}</div> : null}
     </main>
   );
 }

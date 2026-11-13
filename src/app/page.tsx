@@ -1,9 +1,21 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Landing from "@/components/home/Landing";
+import JsonLd from "@/components/site/JsonLd";
 import { fetchTutors, type Tutor } from "@/lib/db";
 import { queryString } from "@/lib/redirects";
+import { faqJsonLd, HOME_FAQ } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    url: "/",
+  },
+};
 
 export default async function Home({
   searchParams,
@@ -22,5 +34,10 @@ export default async function Home({
     initialTutors = [];
   }
 
-  return <Landing initialTutors={initialTutors} />;
+  return (
+    <>
+      <JsonLd data={faqJsonLd(HOME_FAQ)} />
+      <Landing initialTutors={initialTutors} />
+    </>
+  );
 }

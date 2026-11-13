@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Outfit, Syne } from "next/font/google";
 import Providers from "@/components/Providers";
+import JsonLd from "@/components/site/JsonLd";
 import SiteFrame from "@/components/site/SiteFrame";
+import { organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
@@ -17,20 +19,34 @@ const syne = Syne({
   display: "swap",
 });
 
-const SITE_TITLE = "Clutch — Trouvez le bon professeur, gratuitement";
+const SITE_TITLE = "Clutch — Cours particuliers gratuits en Belgique, sans commission";
 const SITE_DESCRIPTION =
-  "Parcourez des professeurs particuliers près de chez vous ou à distance, comparez les profils et contactez-les gratuitement pour démarrer un cours.";
+  "Trouvez un professeur particulier en Belgique (Bruxelles, Brabant wallon, Liège, Namur, Hainaut) ou à distance. Comparez les profils et contactez gratuitement, sans commission.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: SITE_TITLE,
-  description: SITE_DESCRIPTION,
-  alternates: {
-    canonical: SITE_URL,
+  title: {
+    default: SITE_TITLE,
+    template: "%s | Clutch",
   },
+  description: SITE_DESCRIPTION,
+  keywords: [
+    "cours particuliers Belgique",
+    "professeur particulier gratuit",
+    "soutien scolaire sans commission",
+    "cours particuliers mathématiques Bruxelles",
+    "prof particulier à distance",
+    "tutorat étudiant Belgique",
+  ],
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
   verification: {
     google: "WmqsKchLPlAtA_WGSmQuUzE_6IcIkR3OOMZoZWbXzNU",
@@ -38,24 +54,15 @@ export const metadata: Metadata = {
   openGraph: {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    url: SITE_URL,
     siteName: "Clutch",
-    locale: "fr_FR",
+    locale: "fr_BE",
+    alternateLocale: ["fr_FR"],
     type: "website",
-    images: [
-      {
-        url: "/logo.png",
-        width: 1024,
-        height: 1024,
-        alt: "Logo Clutch",
-      },
-    ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: ["/logo.png"],
   },
   icons: {
     icon: [
@@ -76,6 +83,8 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${outfit.variable} ${syne.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans text-ink">
+        <JsonLd data={organizationJsonLd()} />
+        <JsonLd data={websiteJsonLd()} />
         <Providers>
           <SiteFrame>{children}</SiteFrame>
         </Providers>

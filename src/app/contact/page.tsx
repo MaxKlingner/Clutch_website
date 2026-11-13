@@ -1,4 +1,12 @@
+import type { Metadata } from "next";
 import RulesPage from "@/components/site/RulesPage";
+
+export const metadata: Metadata = {
+  title: "Contact",
+  description:
+    "Une question sur Clutch, un profil de professeur ou un signalement ? Contactez l’équipe Clutch directement.",
+  alternates: { canonical: "/contact" },
+};
 
 export default function Page() {
   return (
