@@ -18,7 +18,6 @@ import {
   setEmailNotifications as saveEmailNotifications,
   syncUserEmail,
 } from "@/lib/db";
-import { isAdultBirthDate } from "@/lib/trust";
 
 const GENDERS = ["Homme", "Femme", "Je ne souhaite pas préciser"] as const;
 
@@ -52,8 +51,6 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
     gender: textOf(meta.gender),
     firstName: user.firstName || "",
     lastName: user.lastName || "",
-    birthDate: textOf(meta.birthDate),
-    phone: textOf(meta.phone) || user.primaryPhoneNumber?.phoneNumber || "",
     address: textOf(meta.address),
     emailNotifications: true,
   };
@@ -61,8 +58,6 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
   const [gender, setGender] = useState(initialValues.gender);
   const [firstName, setFirstName] = useState(initialValues.firstName);
   const [lastName, setLastName] = useState(initialValues.lastName);
-  const [birthDate, setBirthDate] = useState(initialValues.birthDate);
-  const [phone, setPhone] = useState(initialValues.phone);
   const [address, setAddress] = useState(initialValues.address);
   const [emailNotifications, setEmailNotifications] = useState(initialValues.emailNotifications);
   const [photoUrl, setPhotoUrl] = useState<string | null>(user.imageUrl || null);
@@ -81,7 +76,6 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
   const [error, setError] = useState("");
 
   const email = user.primaryEmailAddress?.emailAddress || "";
-  const phoneVerified = user.primaryPhoneNumber?.verification?.status === "verified";
 
   useEffect(() => {
     let cancel = false;
@@ -89,8 +83,6 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
       gender: textOf(metaOf(user).gender),
       firstName: user.firstName || "",
       lastName: user.lastName || "",
-      birthDate: textOf(metaOf(user).birthDate),
-      phone: textOf(metaOf(user).phone) || user.primaryPhoneNumber?.phoneNumber || "",
       address: textOf(metaOf(user).address),
     };
 
@@ -106,8 +98,6 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
           gender: baseSnapshot.gender,
           firstName: baseSnapshot.firstName || identity?.firstName || fromTutor.first,
           lastName: baseSnapshot.lastName || identity?.lastName || fromTutor.last,
-          birthDate: baseSnapshot.birthDate,
-          phone: baseSnapshot.phone,
           address:
             baseSnapshot.address ||
             joinPlace(identity?.postalCode, identity?.city) ||
@@ -117,8 +107,6 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
         setGender(next.gender);
         setFirstName(next.firstName);
         setLastName(next.lastName);
-        setBirthDate(next.birthDate);
-        setPhone(next.phone);
         setAddress(next.address);
         setEmailNotifications(next.emailNotifications);
         setPhotoUrl(user.imageUrl || tutor?.avatarUrl || null);
@@ -141,8 +129,6 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
     gender,
     firstName,
     lastName,
-    birthDate,
-    phone,
     address,
     emailNotifications,
   });
@@ -190,14 +176,6 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
       setError("Indique ton prénom et ton nom.");
       return;
     }
-    if (!isAdultBirthDate(birthDate)) {
-      setError("Indique une date de naissance valide (18 ans minimum, JJ/MM/AAAA).");
-      return;
-    }
-    if (phone.trim().replace(/\D/g, "").length < 6) {
-      setError("Indique un numéro de téléphone valide.");
-      return;
-    }
     if (!address.trim()) {
       setError("Indique ton adresse postale.");
       return;
@@ -210,8 +188,6 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
         unsafeMetadata: {
           ...user.unsafeMetadata,
           gender,
-          birthDate: birthDate.trim(),
-          phone: phone.trim(),
           address: address.trim(),
         },
       });
@@ -338,32 +314,6 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
           autoComplete="family-name"
           className={field}
         />
-        <input
-          value={birthDate}
-          onChange={(event) => setBirthDate(event.target.value)}
-          placeholder="Date de naissance (JJ/MM/AAAA)"
-          autoComplete="bday"
-          className={field}
-        />
-        <div className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-4">
-          <input
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
-            placeholder="Téléphone (ex. +32…)"
-            autoComplete="tel"
-            inputMode="tel"
-            className="h-12 min-w-0 flex-1 bg-transparent text-sm outline-none"
-          />
-          {phoneVerified ? <span className="text-sm font-extrabold text-[#0d9f7a]">Vérifié</span> : null}
-        </div>
-        <p className="px-1 text-xs leading-5 text-black/50">
-          Ce numéro reste privé. Pour afficher un téléphone aux membres connectés sur ta fiche
-          professeur, ajoute-le dans{" "}
-          <Link href="/annonce" className="font-semibold text-[#087a5c] underline">
-            Mon annonce
-          </Link>
-          .
-        </p>
         <textarea
           value={address}
           onChange={(event) => setAddress(event.target.value)}
