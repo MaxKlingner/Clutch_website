@@ -1,6 +1,7 @@
 "use client";
 
 import { ClerkProvider, useSession } from "@clerk/clerk-react";
+import { frFR } from "@clerk/localizations";
 import { useLayoutEffect } from "react";
 import { SearchProvider } from "@/components/site/Search";
 import { setSupabaseTokenProvider } from "@/lib/db";
@@ -31,7 +32,7 @@ function SupabaseAuthBridge() {
 export default function Providers({ children }: { children: React.ReactNode }) {
   if (!publishableKey) return <SearchProvider>{children}</SearchProvider>;
   return (
-    <ClerkProvider publishableKey={publishableKey} afterSignOutUrl="/">
+    <ClerkProvider publishableKey={publishableKey} localization={frFR} afterSignOutUrl="/">
       <SupabaseAuthBridge />
       <SearchProvider>{children}</SearchProvider>
     </ClerkProvider>
