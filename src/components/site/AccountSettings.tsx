@@ -35,7 +35,7 @@ export default function AccountSettings() {
   if (!ready || !userId || !user) {
     return (
       <main className="mx-auto max-w-xl px-4 py-8 sm:px-6">
-        <BackLink />
+        <BackLink href="/" label="Accueil" />
         <p className="grid min-h-[40vh] place-items-center text-black/50">Chargement…</p>
       </main>
     );
@@ -290,7 +290,7 @@ function AccountForm({ userId, user }: { userId: string; user: ClerkUser }) {
 
   return (
     <main className="mx-auto max-w-xl px-4 py-8 sm:px-6">
-      <BackLink />
+      <BackLink href="/" label="Accueil" />
       <h1 className="mt-4 font-display text-3xl font-bold">Compte</h1>
       <div className="mt-6 flex flex-col items-center">
         <label className="relative cursor-pointer">
