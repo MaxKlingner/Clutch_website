@@ -428,12 +428,17 @@ function ThreadView({
               <span className="truncate font-extrabold">{title}</span>
             </Link>
             {tutorPhone?.tutorId === tutor.id && tutorPhone.phone ? (
-              <a
-                href={`tel:${tutorPhone.phone.replace(/\s+/g, "")}`}
-                className="shrink-0 rounded-full bg-[#e6f7f2] px-2.5 py-1 text-xs font-bold text-[#087a5c] transition hover:bg-[#d3f2e8]"
-              >
-                {tutorPhone.phone}
-              </a>
+              <>
+                <span aria-hidden="true" className="shrink-0 text-black/25">
+                  ·
+                </span>
+                <a
+                  href={`tel:${tutorPhone.phone.replace(/\s+/g, "")}`}
+                  className="shrink-0 text-sm font-medium text-current hover:underline"
+                >
+                  {tutorPhone.phone}
+                </a>
+              </>
             ) : null}
           </div>
         ) : (
