@@ -34,8 +34,12 @@ function shortFormats(formats: string[]) {
   const tags: string[] = [];
   for (const raw of formats) {
     const lower = raw.toLowerCase();
-    const isRemote = lower.includes("distance") || lower.includes("ligne");
-    const label = isRemote ? "À distance" : "Présentiel";
+    let label = "Présentiel";
+    if (lower.includes("distance") || lower.includes("ligne")) label = "À distance";
+    else if (lower.includes("professeur")) label = "Chez le prof";
+    else if (lower.includes("élève") || lower.includes("eleve") || lower.includes("domicile")) {
+      label = "Chez l’élève";
+    }
     if (!tags.includes(label)) tags.push(label);
   }
   return tags;

@@ -18,16 +18,9 @@ export const LEVEL_GROUPS = [
   },
 ] as const;
 
-const IN_PERSON = new Set([
-  "face a face",
-  "chez l'eleve",
-  "chez l’eleve",
-  "chez le professeur",
-  "presentiel",
-  "a domicile",
-  "en presentiel",
-]);
-
+const CHEZ_LE_PROF = new Set(["chez le professeur"]);
+const CHEZ_L_ELEVE = new Set(["chez l'eleve", "chez l’eleve", "a domicile"]);
+const LEGACY_IN_PERSON = new Set(["face a face", "presentiel", "en presentiel"]);
 const REMOTE = new Set(["a distance", "en ligne"]);
 
 export function fold(value: string) {
@@ -47,8 +40,15 @@ function offeredFormats(formats: string[]) {
   const mapped: string[] = [];
   for (const raw of formats) {
     const name = fold(raw);
-    if (IN_PERSON.has(name) && !mapped.includes("Face à face")) mapped.push("Face à face");
-    if (REMOTE.has(name) && !mapped.includes("À distance")) mapped.push("À distance");
+    if ((CHEZ_LE_PROF.has(name) || LEGACY_IN_PERSON.has(name)) && !mapped.includes("Chez le professeur")) {
+      mapped.push("Chez le professeur");
+    }
+    if ((CHEZ_L_ELEVE.has(name) || LEGACY_IN_PERSON.has(name)) && !mapped.includes("Chez l’élève")) {
+      mapped.push("Chez l’élève");
+    }
+    if (REMOTE.has(name) && !mapped.includes("À distance")) {
+      mapped.push("À distance");
+    }
   }
   return mapped;
 }

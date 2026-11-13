@@ -31,7 +31,8 @@ import { resolveLocationQuery, suggestLocations, type ResolvedPlace } from "@/li
 const LEVEL_OPTIONS = ["Primaire", "Secondaire", "Supérieur", "Formation pour adultes"] as const;
 
 const FORMAT_DETAILS: Record<string, string> = {
-  "Face à face": "En présentiel chez toi ou chez l’élève",
+  "Chez le professeur": "L’élève se déplace à ton domicile",
+  "Chez l’élève": "Tu te déplaces au domicile de l’élève",
   "À distance": "En visioconférence avec partage d’écran",
 };
 
@@ -659,7 +660,7 @@ export default function AnnouncementForm() {
               <p className="text-xs font-extrabold tracking-wide text-black/55 uppercase">
                 Format *
               </p>
-              <div className="mt-2.5 grid gap-3 sm:grid-cols-2">
+              <div className="mt-2.5 grid gap-3 sm:grid-cols-3">
                 {FORMATS.map((format) => {
                   const on = formats.includes(format);
                   return (
@@ -1067,19 +1068,15 @@ function normalizeFormats(formats: string[]) {
   const next: string[] = [];
   for (const raw of formats) {
     const name = fold(raw);
+    const isLegacyInPerson = ["face a face", "presentiel", "en presentiel"].includes(name);
+    if ((name === "chez le professeur" || isLegacyInPerson) && !next.includes("Chez le professeur")) {
+      next.push("Chez le professeur");
+    }
     if (
-      [
-        "face a face",
-        "chez l'eleve",
-        "chez l’eleve",
-        "chez le professeur",
-        "presentiel",
-        "a domicile",
-        "en presentiel",
-      ].includes(name) &&
-      !next.includes("Face à face")
+      (["chez l'eleve", "chez l’eleve", "a domicile"].includes(name) || isLegacyInPerson) &&
+      !next.includes("Chez l’élève")
     ) {
-      next.push("Face à face");
+      next.push("Chez l’élève");
     }
     if (["a distance", "en ligne"].includes(name) && !next.includes("À distance")) {
       next.push("À distance");

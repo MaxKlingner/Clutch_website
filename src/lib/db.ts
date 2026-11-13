@@ -29,7 +29,7 @@ export const LEVELS = [
   "Supérieur",
 ];
 
-export const FORMATS = ["Face à face", "À distance"] as const;
+export const FORMATS = ["Chez le professeur", "Chez l’élève", "À distance"] as const;
 
 const PROFILE_COLUMNS =
   "id, clerk_id, full_name, subject, hourly_rate, rating, review_count, role, bio, about_tutor, about_course, specialties, study_year, avatar_url, city, postal_code, latitude, longitude, teaching_formats, taught_levels, has_contact_phone, created_at";

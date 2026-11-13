@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { LEVEL_GROUPS, PRICE_STEPS, RADIUS_STEPS } from "@/components/site/filters";
-
-const FORMATS = ["Face à face", "À distance"] as const;
+import { FORMATS } from "@/lib/db";
 
 type Panel = "format" | "level" | "price" | "distance" | null;
 
