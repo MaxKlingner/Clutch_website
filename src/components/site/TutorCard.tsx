@@ -180,29 +180,33 @@ export default function TutorCard({
           </span>
         </div>
 
-        {subjects.length ? (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {subjects.slice(0, 2).map((item) => (
-              <span
-                key={item}
-                className="max-w-full truncate rounded-lg bg-[#e7f6f1] px-2.5 py-1 text-xs font-bold text-[#087a5c]"
-              >
-                {item}
-              </span>
-            ))}
-            {subjects.length > 2 ? (
-              <span className="rounded-lg bg-[#f6f7f8] px-2 py-1 text-xs font-semibold text-black/50">
-                +{subjects.length - 2}
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-
-        {formats.length ? (
+        {subjects.length || formats.length ? (
           <div className="mt-auto pt-3">
-            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-t border-black/5 pt-2.5 text-[11px] font-medium text-black/50">
-              <span className="truncate">{formats.join(" · ")}</span>
-            </div>
+            {subjects.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {subjects.slice(0, 2).map((item) => (
+                  <span
+                    key={item}
+                    className="max-w-full truncate rounded-lg bg-[#e7f6f1] px-2.5 py-1 text-xs font-bold text-[#087a5c]"
+                  >
+                    {item}
+                  </span>
+                ))}
+                {subjects.length > 2 ? (
+                  <span className="rounded-lg bg-[#f6f7f8] px-2 py-1 text-xs font-semibold text-black/50">
+                    +{subjects.length - 2}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+
+            {formats.length ? (
+              <div className={subjects.length ? "mt-3" : ""}>
+                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-t border-black/5 pt-2.5 text-[11px] font-medium text-black/50">
+                  <span className="truncate">{formats.join(" · ")}</span>
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>

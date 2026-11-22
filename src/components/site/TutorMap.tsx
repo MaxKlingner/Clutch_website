@@ -50,23 +50,41 @@ function createPinElement(tutor: Tutor, name: string, rate: string) {
 }
 
 function pointsOf(tutors: Tutor[]): Point[] {
-  const groups = new Map<string, Tutor[]>();
+  const groups = new Map<string, { tutor: Tutor; lat: number; lng: number }[]>();
   for (const tutor of tutors) {
-    if (tutor.latitude == null || tutor.longitude == null) continue;
-    const key = `${tutor.latitude.toFixed(5)}:${tutor.longitude.toFixed(5)}`;
-    const group = groups.get(key) ?? [];
-    group.push(tutor);
-    groups.set(key, group);
+    const coords: { lat: number; lng: number }[] = [];
+    if (tutor.latitude != null && tutor.longitude != null) {
+      coords.push({ lat: tutor.latitude, lng: tutor.longitude });
+    }
+    for (const extra of tutor.extraCities ?? []) {
+      if (extra.latitude == null || extra.longitude == null) continue;
+      if (
+        coords.some(
+          (entry) =>
+            entry.lat.toFixed(5) === extra.latitude!.toFixed(5) &&
+            entry.lng.toFixed(5) === extra.longitude!.toFixed(5)
+        )
+      ) {
+        continue;
+      }
+      coords.push({ lat: extra.latitude, lng: extra.longitude });
+    }
+    for (const { lat, lng } of coords) {
+      const key = `${lat.toFixed(5)}:${lng.toFixed(5)}`;
+      const group = groups.get(key) ?? [];
+      group.push({ tutor, lat, lng });
+      groups.set(key, group);
+    }
   }
   const points: Point[] = [];
   for (const group of groups.values()) {
-    group.forEach((tutor, index) => {
+    group.forEach(({ tutor, lat, lng }, index) => {
       const angle = (Math.PI * 2 * index) / group.length;
       const radius = group.length === 1 ? 0 : 36;
       points.push({
         tutor,
-        lat: tutor.latitude!,
-        lng: tutor.longitude!,
+        lat,
+        lng,
         dx: Math.round(Math.cos(angle) * radius),
         dy: Math.round(Math.sin(angle) * radius),
       });
@@ -95,7 +113,12 @@ export default function TutorMap({
   const node = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const signature = tutors
-    .map((tutor) => `${tutor.id}:${tutor.latitude ?? ""}:${tutor.longitude ?? ""}`)
+    .map((tutor) => {
+      const extras = (tutor.extraCities ?? [])
+        .map((c) => `${c.latitude ?? ""}:${c.longitude ?? ""}`)
+        .join(",");
+      return `${tutor.id}:${tutor.latitude ?? ""}:${tutor.longitude ?? ""}:${extras}`;
+    })
     .join("|");
 
   useEffect(() => {
