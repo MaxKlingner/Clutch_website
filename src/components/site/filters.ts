@@ -53,32 +53,55 @@ function offeredFormats(formats: string[]) {
   return mapped;
 }
 
+function tutorPlaces(tutor: Tutor) {
+  const list: { city: string; postalCode: string | null; latitude: number | null; longitude: number | null }[] = [];
+  if (tutor.city) {
+    list.push({
+      city: tutor.city,
+      postalCode: tutor.postalCode,
+      latitude: tutor.latitude,
+      longitude: tutor.longitude,
+    });
+  }
+  for (const extra of tutor.extraCities ?? []) {
+    if (extra.city) list.push(extra);
+  }
+  return list;
+}
+
 export function centroidForCity(tutors: Tutor[], city: string) {
   const needle = fold(city);
   if (!needle) return null;
-  const placed = tutors.filter((tutor) => {
-    if (tutor.latitude == null || tutor.longitude == null || !tutor.city) return false;
-    const place = fold(tutor.city);
-    return place.includes(needle) || needle.includes(place);
-  });
-  if (!placed.length) return null;
+  const coords: { lat: number; lng: number }[] = [];
+  for (const tutor of tutors) {
+    for (const place of tutorPlaces(tutor)) {
+      if (place.latitude == null || place.longitude == null) continue;
+      const folded = fold(place.city);
+      if (folded.includes(needle) || needle.includes(folded)) {
+        coords.push({ lat: place.latitude, lng: place.longitude });
+      }
+    }
+  }
+  if (!coords.length) return null;
   return {
-    lat: placed.reduce((sum, tutor) => sum + tutor.latitude!, 0) / placed.length,
-    lng: placed.reduce((sum, tutor) => sum + tutor.longitude!, 0) / placed.length,
+    lat: coords.reduce((sum, item) => sum + item.lat, 0) / coords.length,
+    lng: coords.reduce((sum, item) => sum + item.lng, 0) / coords.length,
   };
 }
 
 export function sortByProximity(tutors: Tutor[], origin: { lat: number; lng: number } | null) {
   if (!origin) return tutors;
   return tutors
-    .map((tutor, index) => ({
-      tutor,
-      index,
-      distance:
-        tutor.latitude == null || tutor.longitude == null
-          ? Number.POSITIVE_INFINITY
-          : haversineKm(origin.lat, origin.lng, tutor.latitude, tutor.longitude),
-    }))
+    .map((tutor, index) => {
+      const distances = tutorPlaces(tutor)
+        .filter((place) => place.latitude != null && place.longitude != null)
+        .map((place) => haversineKm(origin.lat, origin.lng, place.latitude!, place.longitude!));
+      return {
+        tutor,
+        index,
+        distance: distances.length ? Math.min(...distances) : Number.POSITIVE_INFINITY,
+      };
+    })
     .sort((a, b) => a.distance - b.distance || a.index - b.index)
     .map((item) => item.tutor);
 }
@@ -115,7 +138,14 @@ export function matchesTutor(
       if (!hasSubject) return false;
     } else {
       const haystack = fold(
-        [tutor.name, tutor.subject, tutor.bio, tutor.city, ...tutor.specialties]
+        [
+          tutor.name,
+          tutor.subject,
+          tutor.bio,
+          tutor.city,
+          ...(tutor.extraCities ?? []).map((item) => item.city),
+          ...tutor.specialties,
+        ]
           .filter(Boolean)
           .join(" ")
       );
@@ -125,11 +155,16 @@ export function matchesTutor(
 
   const place = fold(filters.city);
   if (place) {
-    const city = fold(tutor.city || "");
-    const postal = (tutor.postalCode || "").replace(/\s+/g, "");
-    const cityOk = city && (city.includes(place) || place.includes(city));
-    const postalOk = /^\d{4}$/.test(filters.city.replace(/\s+/g, "")) && postal === filters.city.replace(/\s+/g, "");
-    if (!cityOk && !postalOk) return false;
+    const cleanZip = filters.city.replace(/\s+/g, "");
+    const isZip = /^\d{4}$/.test(cleanZip);
+    const matched = tutorPlaces(tutor).some((entry) => {
+      const city = fold(entry.city);
+      const postal = (entry.postalCode || "").replace(/\s+/g, "");
+      const cityOk = city && (city.includes(place) || place.includes(city));
+      const postalOk = isZip && postal === cleanZip;
+      return Boolean(cityOk || postalOk);
+    });
+    if (!matched) return false;
   }
 
   if (filters.formats.length) {
@@ -149,8 +184,14 @@ export function matchesTutor(
   if (filters.maxRate != null && tutor.hourlyRate > filters.maxRate) return false;
 
   if (filters.radiusKm != null && filters.origin) {
-    if (tutor.latitude == null || tutor.longitude == null) return false;
-    if (haversineKm(filters.origin.lat, filters.origin.lng, tutor.latitude, tutor.longitude) > filters.radiusKm) {
+    const withinRadius = tutorPlaces(tutor).some(
+      (entry) =>
+        entry.latitude != null &&
+        entry.longitude != null &&
+        haversineKm(filters.origin!.lat, filters.origin!.lng, entry.latitude, entry.longitude) <=
+          filters.radiusKm!
+    );
+    if (!withinRadius) {
       return false;
     }
   }
@@ -172,11 +213,12 @@ export function tutorsForCityHub(
   const remoteOnly: Tutor[] = [];
 
   for (const tutor of tutors) {
-    const cityMatch = Boolean(tutor.city && fold(tutor.city).includes(hubNeedle));
-    const hasCoords = tutor.latitude != null && tutor.longitude != null;
-    const distance = hasCoords
-      ? haversineKm(hub.lat, hub.lng, tutor.latitude!, tutor.longitude!)
-      : Number.POSITIVE_INFINITY;
+    const places = tutorPlaces(tutor);
+    const cityMatch = places.some((entry) => fold(entry.city).includes(hubNeedle));
+    const distances = places
+      .filter((entry) => entry.latitude != null && entry.longitude != null)
+      .map((entry) => haversineKm(hub.lat, hub.lng, entry.latitude!, entry.longitude!));
+    const distance = distances.length ? Math.min(...distances) : Number.POSITIVE_INFINITY;
 
     if (cityMatch || distance <= maxKm) {
       local.push({ tutor, distance: cityMatch ? Math.min(distance, 0) : distance });

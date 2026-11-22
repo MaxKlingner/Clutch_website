@@ -32,7 +32,14 @@ export const LEVELS = [
 export const FORMATS = ["Chez le professeur", "Chez l’élève", "À distance"] as const;
 
 const PROFILE_COLUMNS =
-  "id, clerk_id, full_name, subject, hourly_rate, rating, review_count, role, bio, about_tutor, about_course, specialties, study_year, avatar_url, city, postal_code, latitude, longitude, teaching_formats, taught_levels, has_contact_phone, created_at";
+  "id, clerk_id, full_name, subject, hourly_rate, rating, review_count, role, bio, about_tutor, about_course, specialties, study_year, avatar_url, city, postal_code, latitude, longitude, extra_cities, teaching_formats, taught_levels, has_contact_phone, created_at";
+
+export type ExtraCity = {
+  city: string;
+  postalCode: string | null;
+  latitude: number | null;
+  longitude: number | null;
+};
 
 export type Tutor = {
   id: string;
@@ -51,6 +58,7 @@ export type Tutor = {
   postalCode: string | null;
   latitude: number | null;
   longitude: number | null;
+  extraCities: ExtraCity[];
   teachingFormats: string[];
   taughtLevels: string[];
   hasContactPhone: boolean;
@@ -196,6 +204,27 @@ function normalizeLevels(raw: unknown): string[] {
   return out;
 }
 
+function normalizeExtraCities(raw: unknown): ExtraCity[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ExtraCity[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const record = item as Record<string, unknown>;
+    const city = String(record.city ?? "").trim();
+    if (!city) continue;
+    const postalCode = record.postalCode ? String(record.postalCode).trim() : null;
+    const lat = Number(record.latitude);
+    const lng = Number(record.longitude);
+    out.push({
+      city,
+      postalCode: postalCode || null,
+      latitude: Number.isFinite(lat) ? lat : null,
+      longitude: Number.isFinite(lng) ? lng : null,
+    });
+  }
+  return out;
+}
+
 function mapTutor(row: Record<string, unknown> | null): Tutor | null {
   if (!row) return null;
   const specialties = Array.isArray(row.specialties)
@@ -225,6 +254,7 @@ function mapTutor(row: Record<string, unknown> | null): Tutor | null {
     postalCode: row.postal_code ? String(row.postal_code) : null,
     latitude: Number.isFinite(latitude) ? latitude : null,
     longitude: Number.isFinite(longitude) ? longitude : null,
+    extraCities: normalizeExtraCities(row.extra_cities),
     teachingFormats: Array.isArray(row.teaching_formats)
       ? row.teaching_formats.map(String)
       : [],
@@ -1084,6 +1114,7 @@ export async function saveAnnouncement(
     postalCode?: string | null;
     latitude?: number | null;
     longitude?: number | null;
+    extraCities?: ExtraCity[];
     teachingFormats: string[];
     taughtLevels: string[];
     contactPhone?: string | null;
@@ -1119,6 +1150,7 @@ export async function saveAnnouncement(
     postal_code: input.postalCode?.trim() || null,
     latitude: input.latitude ?? null,
     longitude: input.longitude ?? null,
+    extra_cities: input.extraCities ?? [],
     teaching_formats: input.teachingFormats,
     taught_levels: input.taughtLevels,
     contact_phone: input.contactPhone?.trim() || null,
@@ -1164,6 +1196,7 @@ export async function resetAnnouncement(clerkId: string) {
       teaching_formats: [],
       taught_levels: [],
       hourly_rate: 0,
+      extra_cities: [],
       contact_phone: null,
     })
     .eq("clerk_id", clerkId);
@@ -1198,6 +1231,7 @@ export async function deleteAccountData(clerkId: string) {
           postal_code: null,
           latitude: null,
           longitude: null,
+          extra_cities: [],
           diploma_title: null,
           diploma_school: null,
           diploma_year: null,

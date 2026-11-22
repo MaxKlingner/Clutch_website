@@ -167,11 +167,20 @@ export default function PublicTutor({
     : tutor.subject
       ? [tutor.subject]
       : [];
-  const cityPage = tutor.city ? getCityByName(tutor.city) : undefined;
-  const placeLabel = tutor.city
-    ? tutor.postalCode
-      ? `${tutor.city} (${tutor.postalCode})`
-      : tutor.city
+  const placeItems = [
+    ...(tutor.city ? [{ city: tutor.city, postalCode: tutor.postalCode }] : []),
+    ...(tutor.extraCities ?? []).map((item) => ({
+      city: item.city,
+      postalCode: item.postalCode,
+    })),
+  ].filter(
+    (item, index, list) =>
+      list.findIndex((other) => other.city.toLowerCase() === item.city.toLowerCase()) === index
+  );
+  const placeLabel = placeItems.length
+    ? placeItems
+        .map((place) => (place.postalCode ? `${place.city} (${place.postalCode})` : place.city))
+        .join(", ")
     : "À préciser";
 
   return (
@@ -224,16 +233,32 @@ export default function PublicTutor({
                           Nouveau professeur
                         </span>
                       )}
-                      {cityPage ? (
-                        <Link
-                          href={`/villes/${cityPage.slug}`}
-                          className="rounded-full bg-[#f6f7f8] px-3 py-1 text-black/75 transition hover:bg-[#e7f6f1] hover:text-[#087a5c]"
-                        >
-                          {placeLabel}
-                        </Link>
+                      {placeItems.length ? (
+                        placeItems.map((place) => {
+                          const matchedCity = getCityByName(place.city);
+                          const label = place.postalCode
+                            ? `${place.city} (${place.postalCode})`
+                            : place.city;
+                          return matchedCity ? (
+                            <Link
+                              key={`${place.city}-${place.postalCode ?? ""}`}
+                              href={`/villes/${matchedCity.slug}`}
+                              className="rounded-full bg-[#f6f7f8] px-3 py-1 text-black/75 transition hover:bg-[#e7f6f1] hover:text-[#087a5c]"
+                            >
+                              {label}
+                            </Link>
+                          ) : (
+                            <span
+                              key={`${place.city}-${place.postalCode ?? ""}`}
+                              className="rounded-full bg-[#f6f7f8] px-3 py-1 text-black/75"
+                            >
+                              {label}
+                            </span>
+                          );
+                        })
                       ) : (
                         <span className="rounded-full bg-[#f6f7f8] px-3 py-1 text-black/75">
-                          {placeLabel}
+                          À préciser
                         </span>
                       )}
                     </div>
@@ -434,7 +459,9 @@ export default function PublicTutor({
 
             <dl className="mt-5 space-y-3 border-t border-black/5 pt-4 text-sm">
               <div className="flex items-start justify-between gap-4">
-                <dt className="shrink-0 text-black/50">Commune</dt>
+                <dt className="shrink-0 text-black/50">
+                  {placeItems.length > 1 ? "Communes" : "Commune"}
+                </dt>
                 <dd className="text-right font-semibold text-[#0f1c1a]">{placeLabel}</dd>
               </div>
               <div className="flex items-start justify-between gap-4">

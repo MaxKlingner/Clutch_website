@@ -489,15 +489,15 @@ export function tutorJsonLd(tutor: Tutor, reviews: Review[]) {
       ...(tutor.avatarUrl ? { image: tutor.avatarUrl } : {}),
       knowsAbout: subjects,
     },
-    areaServed: tutor.city
-      ? {
-          "@type": "City",
-          name: tutor.city,
-        }
-      : {
-          "@type": "Country",
-          name: "Belgique",
-        },
+    areaServed:
+      tutor.city || tutor.extraCities?.length
+        ? [tutor.city, ...(tutor.extraCities ?? []).map((item) => item.city)]
+            .filter((item): item is string => Boolean(item))
+            .map((name) => ({ "@type": "City", name }))
+        : {
+            "@type": "Country",
+            name: "Belgique",
+          },
     offers: {
       "@type": "Offer",
       price: tutor.hourlyRate,

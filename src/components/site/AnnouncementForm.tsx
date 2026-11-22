@@ -24,6 +24,7 @@ import {
   setActiveRole,
   SPECIALTIES,
   uploadAnnouncementPhoto,
+  type ExtraCity,
   type Review,
   type Tutor,
 } from "@/lib/db";
@@ -64,6 +65,10 @@ export default function AnnouncementForm() {
   const [place, setPlace] = useState<ResolvedPlace | null>(null);
   const [placeOpen, setPlaceOpen] = useState(false);
   const placeRoot = useRef<HTMLDivElement>(null);
+  const [extraPlaces, setExtraPlaces] = useState<ExtraCity[]>([]);
+  const [extraCityQuery, setExtraCityQuery] = useState("");
+  const [extraPlaceOpen, setExtraPlaceOpen] = useState(false);
+  const extraPlaceRoot = useRef<HTMLDivElement>(null);
 
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [formats, setFormats] = useState<string[]>([]);
@@ -125,6 +130,7 @@ export default function AnnouncementForm() {
       } else {
         setPlace(resolveLocationQuery(initialCity));
       }
+      setExtraPlaces(profile.extraCities ?? []);
 
       setSpecialties(
         profile.specialties.filter((item) => item.trim().toLowerCase() !== "matière")
@@ -158,15 +164,45 @@ export default function AnnouncementForm() {
   }, [userId, user?.firstName, user?.lastName, user?.fullName]);
 
   useEffect(() => {
-    if (!placeOpen) return;
+    if (!placeOpen && !extraPlaceOpen) return;
     function onPointerDown(event: PointerEvent) {
-      if (!placeRoot.current?.contains(event.target as Node)) setPlaceOpen(false);
+      if (placeOpen && !placeRoot.current?.contains(event.target as Node)) setPlaceOpen(false);
+      if (extraPlaceOpen && !extraPlaceRoot.current?.contains(event.target as Node)) {
+        setExtraPlaceOpen(false);
+      }
     }
     document.addEventListener("pointerdown", onPointerDown, true);
     return () => document.removeEventListener("pointerdown", onPointerDown, true);
-  }, [placeOpen]);
+  }, [placeOpen, extraPlaceOpen]);
 
   const places = placeOpen ? suggestLocations(city) : [];
+  const extraSuggestions = extraPlaceOpen ? suggestLocations(extraCityQuery) : [];
+
+  function addExtraPlace(item: ResolvedPlace) {
+    const primaryKey = `${resolvedPlace?.name ?? city}|${resolvedPlace?.postalCode ?? ""}`.toLowerCase();
+    const itemKey = `${item.name}|${item.postalCode}`.toLowerCase();
+    if (itemKey === primaryKey) {
+      setExtraCityQuery("");
+      setExtraPlaceOpen(false);
+      return;
+    }
+    setExtraPlaces((prev) => {
+      if (prev.some((p) => `${p.city}|${p.postalCode ?? ""}`.toLowerCase() === itemKey)) {
+        return prev;
+      }
+      return [
+        ...prev,
+        {
+          city: item.name,
+          postalCode: item.postalCode || null,
+          latitude: item.latitude,
+          longitude: item.longitude,
+        },
+      ];
+    });
+    setExtraCityQuery("");
+    setExtraPlaceOpen(false);
+  }
 
   function toggle(list: string[], value: string, set: (next: string[]) => void) {
     set(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
@@ -241,6 +277,7 @@ export default function AnnouncementForm() {
     postalCode: resolvedPlace?.postalCode || null,
     latitude: resolvedPlace?.latitude ?? null,
     longitude: resolvedPlace?.longitude ?? null,
+    extraCities: extraPlaces,
     teachingFormats: formats,
     taughtLevels: levels,
     hasContactPhone: Boolean(contactPhone.trim()),
@@ -331,6 +368,11 @@ export default function AnnouncementForm() {
         postalCode: resolvedPlace.postalCode || null,
         latitude: resolvedPlace.latitude ?? null,
         longitude: resolvedPlace.longitude ?? null,
+        extraCities: extraPlaces.filter(
+          (item) =>
+            `${item.city}|${item.postalCode ?? ""}`.toLowerCase() !==
+            `${resolvedPlace.name}|${resolvedPlace.postalCode || ""}`.toLowerCase()
+        ),
         teachingFormats: formats,
         taughtLevels: levels,
         contactPhone: cleanPhone || null,
@@ -556,6 +598,82 @@ export default function AnnouncementForm() {
                       ))}
                     </div>
                   ) : placeOpen && city.trim().length >= 2 ? (
+                    <p className="absolute top-[calc(100%+6px)] right-0 left-0 z-30 rounded-2xl bg-white px-4 py-3 text-sm text-black/50 shadow-[0_18px_50px_rgba(15,28,26,0.14)] ring-1 ring-black/5">
+                      Aucune commune belge ne correspond.
+                    </p>
+                  ) : null}
+                </div>
+
+                <div ref={extraPlaceRoot} className="relative">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-extrabold tracking-wide text-black/55 uppercase">
+                      Autres communes / adresses
+                    </span>
+                    <span className="rounded-full bg-[#f6f7f8] px-2.5 py-0.5 text-[11px] font-semibold text-black/45">
+                      Facultatif
+                    </span>
+                  </div>
+                  {extraPlaces.length ? (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {extraPlaces.map((item) => {
+                        const key = `${item.city}-${item.postalCode ?? ""}`;
+                        return (
+                          <span
+                            key={key}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-[#e7f6f1] px-3 py-1 text-xs font-bold text-[#087a5c]"
+                          >
+                            <span>
+                              {item.city}
+                              {item.postalCode ? ` (${item.postalCode})` : ""}
+                            </span>
+                            <button
+                              type="button"
+                              aria-label={`Retirer ${item.city}`}
+                              onClick={() =>
+                                setExtraPlaces((prev) =>
+                                  prev.filter(
+                                    (entry) => `${entry.city}-${entry.postalCode ?? ""}` !== key
+                                  )
+                                )
+                              }
+                              className="grid h-4 w-4 place-items-center rounded-full bg-[#087a5c]/15 text-[11px] leading-none text-[#087a5c] transition hover:bg-[#087a5c] hover:text-white"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                  <input
+                    value={extraCityQuery}
+                    onChange={(event) => {
+                      setExtraCityQuery(event.target.value);
+                      setExtraPlaceOpen(true);
+                    }}
+                    onFocus={() => setExtraPlaceOpen(true)}
+                    placeholder="Ajouter une autre commune (ex. Louvain-la-Neuve, 1348…)"
+                    className={`${field} mt-2`}
+                    autoComplete="off"
+                  />
+                  {extraSuggestions.length ? (
+                    <div className="absolute top-[calc(100%+6px)] right-0 left-0 z-30 overflow-hidden rounded-2xl bg-white py-1 shadow-[0_18px_50px_rgba(15,28,26,0.14)] ring-1 ring-black/5">
+                      {extraSuggestions.map((item) => (
+                        <button
+                          key={`extra-${item.postalCode}-${item.name}`}
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => addExtraPlace(item)}
+                          className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition hover:bg-[#f3f7f5]"
+                        >
+                          <span className="font-semibold text-[#0f1c1a]">{item.name}</span>
+                          <span className="text-xs font-semibold text-black/45">
+                            {item.postalCode}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : extraPlaceOpen && extraCityQuery.trim().length >= 2 ? (
                     <p className="absolute top-[calc(100%+6px)] right-0 left-0 z-30 rounded-2xl bg-white px-4 py-3 text-sm text-black/50 shadow-[0_18px_50px_rgba(15,28,26,0.14)] ring-1 ring-black/5">
                       Aucune commune belge ne correspond.
                     </p>
