@@ -177,11 +177,6 @@ export default function PublicTutor({
     (item, index, list) =>
       list.findIndex((other) => other.city.toLowerCase() === item.city.toLowerCase()) === index
   );
-  const placeLabel = placeItems.length
-    ? placeItems
-        .map((place) => (place.postalCode ? `${place.city} (${place.postalCode})` : place.city))
-        .join(", ")
-    : "À préciser";
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -222,7 +217,7 @@ export default function PublicTutor({
                       </span>
                       <span className="ml-1 text-sm font-semibold text-black/50">/ heure</span>
                     </p>
-                    <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs font-semibold">
+                    <div className="mt-2.5 flex flex-col items-start gap-2 text-xs font-semibold">
                       {tutor.rating > 0 ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-[#fff9e6] px-3 py-1 font-bold text-[#8a6500]">
                           <span className="text-[#e6b800]">★</span>
@@ -233,34 +228,36 @@ export default function PublicTutor({
                           Nouveau professeur
                         </span>
                       )}
-                      {placeItems.length ? (
-                        placeItems.map((place) => {
-                          const matchedCity = getCityByName(place.city);
-                          const label = place.postalCode
-                            ? `${place.city} (${place.postalCode})`
-                            : place.city;
-                          return matchedCity ? (
-                            <Link
-                              key={`${place.city}-${place.postalCode ?? ""}`}
-                              href={`/villes/${matchedCity.slug}`}
-                              className="rounded-full bg-[#f6f7f8] px-3 py-1 text-black/75 transition hover:bg-[#e7f6f1] hover:text-[#087a5c]"
-                            >
-                              {label}
-                            </Link>
-                          ) : (
-                            <span
-                              key={`${place.city}-${place.postalCode ?? ""}`}
-                              className="rounded-full bg-[#f6f7f8] px-3 py-1 text-black/75"
-                            >
-                              {label}
-                            </span>
-                          );
-                        })
-                      ) : (
-                        <span className="rounded-full bg-[#f6f7f8] px-3 py-1 text-black/75">
-                          À préciser
-                        </span>
-                      )}
+                      <div className="flex flex-col items-start gap-1.5">
+                        {placeItems.length ? (
+                          placeItems.map((place) => {
+                            const matchedCity = getCityByName(place.city);
+                            const label = place.postalCode
+                              ? `${place.city} (${place.postalCode})`
+                              : place.city;
+                            return matchedCity ? (
+                              <Link
+                                key={`${place.city}-${place.postalCode ?? ""}`}
+                                href={`/villes/${matchedCity.slug}`}
+                                className="rounded-full bg-[#f6f7f8] px-3 py-1 text-black/75 transition hover:bg-[#e7f6f1] hover:text-[#087a5c]"
+                              >
+                                {label}
+                              </Link>
+                            ) : (
+                              <span
+                                key={`${place.city}-${place.postalCode ?? ""}`}
+                                className="rounded-full bg-[#f6f7f8] px-3 py-1 text-black/75"
+                              >
+                                {label}
+                              </span>
+                            );
+                          })
+                        ) : (
+                          <span className="rounded-full bg-[#f6f7f8] px-3 py-1 text-black/75">
+                            À préciser
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   {isSignedIn && !isOwnProfile ? (
@@ -462,7 +459,17 @@ export default function PublicTutor({
                 <dt className="shrink-0 text-black/50">
                   {placeItems.length > 1 ? "Communes" : "Commune"}
                 </dt>
-                <dd className="text-right font-semibold text-[#0f1c1a]">{placeLabel}</dd>
+                <dd className="space-y-0.5 text-right font-semibold text-[#0f1c1a]">
+                  {placeItems.length ? (
+                    placeItems.map((place) => (
+                      <span key={`${place.city}-${place.postalCode ?? ""}`} className="block">
+                        {place.postalCode ? `${place.city} (${place.postalCode})` : place.city}
+                      </span>
+                    ))
+                  ) : (
+                    <span>À préciser</span>
+                  )}
+                </dd>
               </div>
               <div className="flex items-start justify-between gap-4">
                 <dt className="shrink-0 text-black/50">Format</dt>

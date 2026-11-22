@@ -105,7 +105,6 @@ export default function TutorCard({
     .map((item) => item?.trim())
     .filter((item): item is string => Boolean(item))
     .filter((item, index, list) => list.indexOf(item) === index);
-  const placeSummary = allCities.length ? allCities.join(" · ") : "À préciser";
   const label = `${name} — ${subjects[0] || "Professeur"}, ${formatRate(tutor.hourlyRate)} €/h`;
 
   return (
@@ -156,8 +155,18 @@ export default function TutorCard({
           </p>
         </div>
 
-        <div className="mt-1 flex items-center justify-between gap-2 text-xs font-medium text-black/55">
-          <span className="truncate">{placeSummary}</span>
+        <div className="mt-1 flex items-start justify-between gap-2 text-xs font-medium text-black/55">
+          <span className="min-w-0 leading-4">
+            {allCities.length ? (
+              allCities.map((cityName) => (
+                <span key={cityName} className="block">
+                  {cityName}
+                </span>
+              ))
+            ) : (
+              "À préciser"
+            )}
+          </span>
           <span className="inline-flex shrink-0 items-center gap-1 font-semibold text-[#0f1c1a]">
             {tutor.rating > 0 ? (
               <>
