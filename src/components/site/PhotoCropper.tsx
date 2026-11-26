@@ -72,21 +72,42 @@ export default function PhotoCropper({
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
   const [stage, setStage] = useState(0);
   const [zoom, setZoomState] = useState(1);
+  const [rotation, setRotation] = useState<0 | 90 | 180 | 270>(0);
+  const [flipX, setFlipX] = useState(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [busy, setBusy] = useState(false);
+
+  const oriented = natural
+    ? {
+        w: rotation % 180 === 0 ? natural.w : natural.h,
+        h: rotation % 180 === 0 ? natural.h : natural.w,
+      }
+    : null;
 
   function applyZoom(next: number) {
     zoomRef.current = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next));
     setZoomState(zoomRef.current);
   }
 
+  function rotateBy(delta: -90 | 90) {
+    setRotation((prev) => (((prev + delta + 360) % 360) as 0 | 90 | 180 | 270));
+  }
+
+  function resetAll() {
+    setRotation(0);
+    setFlipX(false);
+    applyZoom(1);
+    offsetRef.current = { x: 0, y: 0 };
+    setOffset(offsetRef.current);
+  }
+
   function applyOffset(x: number, y: number) {
-    if (!natural || stage <= 0) {
+    if (!oriented || stage <= 0) {
       offsetRef.current = { x, y };
       setOffset(offsetRef.current);
       return;
     }
-    const laid = layoutOf(natural.w, natural.h, stage, zoomRef.current, x, y);
+    const laid = layoutOf(oriented.w, oriented.h, stage, zoomRef.current, x, y);
     offsetRef.current = { x: laid.offsetX, y: laid.offsetY };
     setOffset(offsetRef.current);
   }
@@ -136,11 +157,13 @@ export default function PhotoCropper({
 
   useEffect(() => {
     if (!natural || stage <= 0) return;
-    const laid = layoutOf(natural.w, natural.h, stage, zoom, offsetRef.current.x, offsetRef.current.y);
+    const orientedW = rotation % 180 === 0 ? natural.w : natural.h;
+    const orientedH = rotation % 180 === 0 ? natural.h : natural.w;
+    const laid = layoutOf(orientedW, orientedH, stage, zoom, offsetRef.current.x, offsetRef.current.y);
     if (laid.offsetX === offsetRef.current.x && laid.offsetY === offsetRef.current.y) return;
     offsetRef.current = { x: laid.offsetX, y: laid.offsetY };
     setOffset(offsetRef.current);
-  }, [natural, stage, zoom]);
+  }, [natural, rotation, stage, zoom]);
 
   function onPointerDown(event: React.PointerEvent<HTMLDivElement>) {
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -184,18 +207,35 @@ export default function PhotoCropper({
 
   async function confirm() {
     const img = imgRef.current;
-    if (!img || !natural || stage <= 0 || busy) return;
-    const laid = layoutOf(natural.w, natural.h, stage, zoomRef.current, offsetRef.current.x, offsetRef.current.y);
-    const sourceSize = Math.min(laid.sourceSize, natural.w, natural.h);
-    const sourceX = Math.max(0, Math.min(laid.sourceX, natural.w - sourceSize));
-    const sourceY = Math.max(0, Math.min(laid.sourceY, natural.h - sourceSize));
+    if (!img || !oriented || stage <= 0 || busy) return;
+    const laid = layoutOf(
+      oriented.w,
+      oriented.h,
+      stage,
+      zoomRef.current,
+      offsetRef.current.x,
+      offsetRef.current.y
+    );
     const canvas = document.createElement("canvas");
     const size = 1200;
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.drawImage(img, sourceX, sourceY, sourceSize, sourceSize, 0, 0, size, size);
+
+    const scaleOut = size / stage;
+    const cx = (laid.left + laid.width / 2) * scaleOut;
+    const cy = (laid.top + laid.height / 2) * scaleOut;
+    const drawW = (rotation % 180 === 0 ? laid.width : laid.height) * scaleOut;
+    const drawH = (rotation % 180 === 0 ? laid.height : laid.width) * scaleOut;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    if (flipX) ctx.scale(-1, 1);
+    ctx.rotate((rotation * Math.PI) / 180);
+    ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+    ctx.restore();
+
     setBusy(true);
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
     if (!blob) {
@@ -206,7 +246,9 @@ export default function PhotoCropper({
     onConfirm(new File([blob], `${base}.jpg`, { type: "image/jpeg" }));
   }
 
-  const laid = natural && stage > 0 ? layoutOf(natural.w, natural.h, stage, zoom, offset.x, offset.y) : null;
+  const laid = oriented && stage > 0 ? layoutOf(oriented.w, oriented.h, stage, zoom, offset.x, offset.y) : null;
+  const imgBoxW = laid ? (rotation % 180 === 0 ? laid.width : laid.height) : 0;
+  const imgBoxH = laid ? (rotation % 180 === 0 ? laid.height : laid.width) : 0;
 
   return createPortal(
     <div
@@ -221,9 +263,11 @@ export default function PhotoCropper({
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="crop-title" className="font-display text-xl font-bold">
-          Recadrer la photo
+          Ajuster la photo
         </h2>
-        <p className="mt-1 text-sm text-black/55">Glisse pour déplacer, puis zoome.</p>
+        <p className="mt-1 text-sm text-black/55">
+          Glisse pour recadrer, pivote, retourne ou zoome.
+        </p>
         <div
           ref={boxRef}
           className={`relative mt-4 aspect-square w-full cursor-grab touch-none overflow-hidden bg-[#dfe7e3] active:cursor-grabbing ${
@@ -235,38 +279,114 @@ export default function PhotoCropper({
           onPointerCancel={onPointerUp}
         >
           {src ? (
-            // Local blob: preview positioned dynamically in px before drawing onto <canvas>; next/image is unsupported here.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              ref={imgRef}
-              src={src}
-              alt=""
-              draggable={false}
-              onLoad={(event) => {
-                const el = event.currentTarget;
-                setNatural({ w: el.naturalWidth, h: el.naturalHeight });
-              }}
-              className="absolute max-w-none select-none"
+            <div
+              className="absolute"
               style={
                 laid
                   ? { left: laid.left, top: laid.top, width: laid.width, height: laid.height }
                   : { visibility: "hidden" }
               }
-            />
+            >
+              {/* Local blob: preview positioned dynamically in px before drawing onto <canvas>; next/image is unsupported here. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                ref={imgRef}
+                src={src}
+                alt=""
+                draggable={false}
+                onLoad={(event) => {
+                  const el = event.currentTarget;
+                  setNatural({ w: el.naturalWidth, h: el.naturalHeight });
+                }}
+                className="absolute top-1/2 left-1/2 max-w-none select-none"
+                style={
+                  laid
+                    ? {
+                        width: imgBoxW,
+                        height: imgBoxH,
+                        transform: `translate(-50%, -50%) scaleX(${flipX ? -1 : 1}) rotate(${rotation}deg)`,
+                      }
+                    : { visibility: "hidden" }
+                }
+              />
+            </div>
           ) : null}
         </div>
-        <label className="mt-4 block text-sm font-semibold text-black/70">
-          Zoom
-          <input
-            type="range"
-            min={MIN_ZOOM}
-            max={MAX_ZOOM}
-            step={0.01}
-            value={zoom}
-            onChange={(event) => applyZoom(Number(event.target.value))}
-            className="mt-2 w-full accent-[#12382c]"
-          />
-        </label>
+
+        <div className="mt-4 grid grid-cols-4 gap-2">
+          <button
+            type="button"
+            onClick={() => rotateBy(-90)}
+            title="Pivoter à gauche"
+            className="flex h-10 items-center justify-center gap-1 rounded-2xl border border-black/10 bg-[#f6f7f8] text-xs font-bold text-[#0f1c1a] transition hover:border-[#087a5c]/30 hover:bg-[#e7f6f1] hover:text-[#087a5c]"
+          >
+            ↺ 90°
+          </button>
+          <button
+            type="button"
+            onClick={() => rotateBy(90)}
+            title="Pivoter à droite"
+            className="flex h-10 items-center justify-center gap-1 rounded-2xl border border-black/10 bg-[#f6f7f8] text-xs font-bold text-[#0f1c1a] transition hover:border-[#087a5c]/30 hover:bg-[#e7f6f1] hover:text-[#087a5c]"
+          >
+            ↻ 90°
+          </button>
+          <button
+            type="button"
+            onClick={() => setFlipX((prev) => !prev)}
+            aria-pressed={flipX}
+            title="Retourner horizontalement"
+            className={`flex h-10 items-center justify-center gap-1 rounded-2xl border text-xs font-bold transition ${
+              flipX
+                ? "border-[#087a5c] bg-[#e7f6f1] text-[#087a5c]"
+                : "border-black/10 bg-[#f6f7f8] text-[#0f1c1a] hover:border-[#087a5c]/30 hover:bg-[#e7f6f1] hover:text-[#087a5c]"
+            }`}
+          >
+            ⇄ Miroir
+          </button>
+          <button
+            type="button"
+            onClick={resetAll}
+            title="Réinitialiser"
+            className="flex h-10 items-center justify-center rounded-2xl border border-black/10 bg-[#f6f7f8] text-xs font-bold text-black/65 transition hover:bg-black/5 hover:text-[#0f1c1a]"
+          >
+            Reset
+          </button>
+        </div>
+
+        <div className="mt-3">
+          <div className="flex items-center justify-between text-xs font-bold text-black/60">
+            <span>Zoom</span>
+            <span>{Math.round(zoom * 100)} %</span>
+          </div>
+          <div className="mt-1.5 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => applyZoom(zoom - 0.2)}
+              aria-label="Dézoomer"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-black/10 text-sm font-extrabold text-[#0f1c1a] hover:bg-[#f6f7f8]"
+            >
+              −
+            </button>
+            <input
+              type="range"
+              aria-label="Zoom"
+              min={MIN_ZOOM}
+              max={MAX_ZOOM}
+              step={0.01}
+              value={zoom}
+              onChange={(event) => applyZoom(Number(event.target.value))}
+              className="w-full accent-[#12382c]"
+            />
+            <button
+              type="button"
+              onClick={() => applyZoom(zoom + 0.2)}
+              aria-label="Zoomer"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-black/10 text-sm font-extrabold text-[#0f1c1a] hover:bg-[#f6f7f8]"
+            >
+              +
+            </button>
+          </div>
+        </div>
         <div className="mt-4 flex gap-2">
           <button
             type="button"
